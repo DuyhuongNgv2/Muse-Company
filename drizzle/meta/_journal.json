@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1795446980363,
+      "tag": "0001_initial",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1795446980363,
+      "tag": "0002_company_office_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795446980363,
+      "tag": "0003_gates_kpi_brandkit_versions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1795447339362,
+      "tag": "0004_meetings_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1795539741876,
+      "tag": "0005_add_message_recipient_for_staff_dm",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1795545321058,
+      "tag": "0006_pipeline_orchestration_tables",
+      "breakpoints": true
+    }
+  ]
+}

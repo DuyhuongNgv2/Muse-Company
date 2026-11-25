@@ -1,0 +1,1 @@
+ALTER TABLE messages ADD COLUMN recipient TEXT NOT NULL DEFAULT '';

@@ -1,0 +1,9 @@
+CREATE TABLE meetings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  room TEXT NOT NULL DEFAULT 'video',
+  title TEXT NOT NULL,
+  decisions TEXT NOT NULL DEFAULT '',
+  actions TEXT NOT NULL DEFAULT '',
+  risks TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL
+);

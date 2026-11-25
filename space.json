@@ -1,0 +1,8 @@
+{
+  "entry": "client/dist/index.html",
+  "managedCronJobs": [],
+  "name": "Văn phòng phòng ban ảo",
+  "platformVersion": 31,
+  "runtime": "typescript",
+  "slug": "van-phong-phong-ban-ao"
+}
