@@ -153,6 +153,16 @@ const STAFF_TRAITS: Record<string, string> = {
   "legal-nv2": "trầm tĩnh, đáng tin cậy",
   "tp-hop": "gọn gàng, điều phối cuộc họp đâu ra đó",
   "hop-nv1": "nhanh nhẹn, lo thiết bị chu đáo",
+  "kiem-toan": "độc lập, nguyên tắc, chỉ nhìn vào chứng cứ và nhật ký",
+  "gd-chat-luong": "khắt khe, công tâm, chặn lỗi là ghi rõ mã lý do",
+  "tp-rd": "tò mò, thích thử nghiệm, đo số liệu trước khi kết luận",
+  "rd-nv1": "tỉ mỉ, ham học hỏi, ghi chép thí nghiệm cẩn thận",
+  "rd-nv2": "thực tế, làm mẫu nhanh, nói ít làm nhiều",
+  "tong-quan-nen-tang": "nắm số liệu kênh chắc, báo cáo ngắn gọn đúng trọng tâm",
+  "nen-tang-nv1": "chăm chỉ, theo lịch đăng sát sao",
+  "tp-cong-nghe": "thận trọng, an toàn tài khoản đặt lên đầu, chưa nối local thì nói rõ chờ",
+  "cong-nghe-nv1": "chắc tay kỹ thuật, ít nói",
+  "cong-nghe-nv2": "cẩn thận, rành API, luôn kiểm tra quyền truy cập",
 };
 
 function traitOf(contact: StaffContact): string {
@@ -209,7 +219,21 @@ const STAFF_DIRECTORY: StaffContact[] = [
   { id: "legal-nv2", chatName: "Hữu Thắng", personName: "Hữu Thắng", role: "Nhân viên Pháp chế" },
   { id: "tp-hop", chatName: "Minh Châu", personName: "Minh Châu", role: "Trưởng phòng Họp Lớn" },
   { id: "hop-nv1", chatName: "Văn Toàn", personName: "Văn Toàn", role: "Nhân viên Phòng Họp Lớn" },
+  // Tầng quản trị mới (cơ cấu tiệm cận / vượt WINHUB): Kiểm toán nội
+  // bộ độc lập báo thẳng Chủ tịch; Giám đốc Chất lượng toàn công ty
+  // (quyền VETO); R&D; Tổng quản nền tảng; Công nghệ / CTO.
+  { id: "kiem-toan", chatName: "Kiểm toán", personName: "Quang Minh", role: "Trưởng Kiểm toán nội bộ — độc lập, báo cáo thẳng Chủ tịch" },
+  { id: "gd-chat-luong", chatName: "GĐ Chất lượng", personName: "Bảo Ngọc", role: "Giám đốc Chất lượng toàn công ty — quyền VETO ghi mã lý do" },
+  { id: "tp-rd", chatName: "Trưởng R&D", personName: "Anh Tuấn", role: "Trưởng phòng R&D — nghiên cứu & phát triển, trực thuộc Tổng giám đốc" },
+  { id: "rd-nv1", chatName: "Thảo Nguyên", personName: "Thảo Nguyên", role: "Nhân viên R&D" },
+  { id: "rd-nv2", chatName: "Minh Đức", personName: "Minh Đức", role: "Nhân viên R&D" },
+  { id: "tong-quan-nen-tang", chatName: "Tổng quản nền tảng", personName: "Phương Anh", role: "Tổng quản nền tảng — YouTube / TikTok / Facebook" },
+  { id: "nen-tang-nv1", chatName: "Hoàng Anh", personName: "Hoàng Anh", role: "Nhân viên Quản lý nền tảng" },
+  { id: "tp-cong-nghe", chatName: "CTO", personName: "Trí Đức", role: "Giám đốc Công nghệ / CTO — kỹ thuật, API, an toàn tài khoản (chờ kết nối local)" },
+  { id: "cong-nghe-nv1", chatName: "Thanh Sơn", personName: "Thanh Sơn", role: "Nhân viên Công nghệ — kỹ thuật & hạ tầng" },
+  { id: "cong-nghe-nv2", chatName: "Mỹ Linh", personName: "Mỹ Linh", role: "Nhân viên Công nghệ — API & an toàn tài khoản" },
 ];
+
 
 /** Lowercases and strips Vietnamese diacritics so "@dao dien" finds Đạo diễn. */
 function foldText(s: string): string {
@@ -1770,6 +1794,11 @@ export const Actions = {
         "tp-tai-chinh": "finance", "finance-nv1": "finance", "finance-nv2": "finance",
         "tp-phap-che": "legal", "legal-nv1": "legal", "legal-nv2": "legal",
         "tp-hop": "meeting", "hop-nv1": "meeting",
+        "kiem-toan": "kiem-toan",
+        "gd-chat-luong": "chat-luong",
+        "tp-rd": "rd", "rd-nv1": "rd", "rd-nv2": "rd",
+        "tong-quan-nen-tang": "nen-tang", "nen-tang-nv1": "nen-tang",
+        "tp-cong-nghe": "cong-nghe", "cong-nghe-nv1": "cong-nghe", "cong-nghe-nv2": "cong-nghe",
       };
       const resolveStaff = (name: string): StaffContact | undefined =>
         STAFF_DIRECTORY.find((s) => s.chatName === name || s.personName === name);
@@ -3500,6 +3529,637 @@ export const Actions = {
           target: schema.officeSettings.key,
           set: { value },
         });
+      ctx.invalidateQueries();
+      return { ok: true };
+    },
+  }),
+
+  // ---------------------------------------------------------------------
+  // Tầng quản trị tập đoàn: Sổ quyết định (Văn phòng Chủ tịch giữ),
+  // Hội đồng cố vấn 5 người (khuyến nghị khi ≥3/5 đồng ý, có biên
+  // bản bỏ phiếu), quyền VETO của Khối Chất lượng (bắt buộc mã lý
+  // do, chặn việc xuống Làm lại), bảng rủi ro bản quyền / an toàn
+  // tài khoản, và sổ kênh của Tổng quản nền tảng. Mọi bảng bắt đầu
+  // trống — chỉ ghi thao tác thật, không seed số liệu.
+  // ---------------------------------------------------------------------
+
+  listDecisions: defineAction({
+    description:
+      "Lists the Chairman-office decision book (Sổ quyết định), newest first. Every Chairman/CEO decision is recorded here by Văn thư.",
+    request: z.object({}),
+    response: z.object({
+      decisions: z.array(
+        z.object({
+          id: z.number(),
+          title: z.string(),
+          body: z.string(),
+          decided_by: z.string(),
+          created_at: z.string(),
+        }),
+      ),
+    }),
+    async handler(ctx) {
+      const db = ctx.db<typeof schema>();
+      const rows = await db
+        .select()
+        .from(schema.decisions)
+        .orderBy(desc(schema.decisions.id));
+      return {
+        decisions: rows.map((d) => ({
+          id: d.id,
+          title: d.title,
+          body: d.body,
+          decided_by: d.decidedBy,
+          created_at: d.createdAt.toISOString(),
+        })),
+      };
+    },
+  }),
+
+  addDecision: defineAction({
+    description:
+      "Records a decision into the Sổ quyết định kept by the Chairman's office (Văn thư). Audit-logged.",
+    request: z.object({
+      title: z.string().trim().min(1).max(300),
+      body: z.string().trim().max(4000).default(""),
+      decided_by: z.enum(["chu-tich", "tong-giam-doc"]).default("chu-tich"),
+      actor: z.string().trim().max(60).default("Văn thư"),
+    }),
+    response: z.object({ id: z.number() }),
+    async handler(ctx, args) {
+      const db = ctx.db<typeof schema>();
+      const result = await db
+        .insert(schema.decisions)
+        .values({
+          title: args.title,
+          body: args.body,
+          decidedBy: args.decided_by,
+          createdAt: new Date(),
+        })
+        .returning({ id: schema.decisions.id });
+      const inserted = result[0];
+      if (!inserted) throw new Error("addDecision: insert returned no rows");
+      await logAudit(
+        ctx,
+        args.actor,
+        "Sổ quyết định: ghi quyết định",
+        `${args.decided_by === "chu-tich" ? "Chủ tịch" : "Tổng giám đốc"} — "${args.title}"`,
+      );
+      ctx.invalidateQueries();
+      return { id: inserted.id };
+    },
+  }),
+
+  listProposals: defineAction({
+    description:
+      "Lists Advisory Council proposals with every member's ballot, so the voting minutes (biên bản bỏ phiếu) are fully traceable. A recommendation stands only at 3 of 5 YES.",
+    request: z.object({}),
+    response: z.object({
+      proposals: z.array(
+        z.object({
+          id: z.number(),
+          title: z.string(),
+          detail: z.string(),
+          proposer: z.string(),
+          status: z.enum(["OPEN", "ADOPTED", "REJECTED"]),
+          yes: z.number(),
+          no: z.number(),
+          created_at: z.string(),
+          closed_at: z.string().nullable(),
+          votes: z.array(
+            z.object({
+              member: z.string(),
+              vote: z.enum(["YES", "NO"]),
+              note: z.string(),
+              created_at: z.string(),
+            }),
+          ),
+        }),
+      ),
+    }),
+    async handler(ctx) {
+      const db = ctx.db<typeof schema>();
+      const props = await db
+        .select()
+        .from(schema.councilProposals)
+        .orderBy(desc(schema.councilProposals.id));
+      const ballots = await db
+        .select()
+        .from(schema.councilVotes)
+        .orderBy(asc(schema.councilVotes.id));
+      return {
+        proposals: props.map((p) => {
+          const mine = ballots.filter((v) => v.proposalId === p.id);
+          return {
+            id: p.id,
+            title: p.title,
+            detail: p.detail,
+            proposer: p.proposer,
+            status: p.status,
+            yes: mine.filter((v) => v.vote === "YES").length,
+            no: mine.filter((v) => v.vote === "NO").length,
+            created_at: p.createdAt.toISOString(),
+            closed_at: p.closedAt ? p.closedAt.toISOString() : null,
+            votes: mine.map((v) => ({
+              member: v.member,
+              vote: v.vote,
+              note: v.note,
+              created_at: v.createdAt.toISOString(),
+            })),
+          };
+        }),
+      };
+    },
+  }),
+
+  createProposal: defineAction({
+    description:
+      "Opens an Advisory Council proposal for the 5-member vote. The council only recommends; the Chairman and CEO decide.",
+    request: z.object({
+      title: z.string().trim().min(1).max(300),
+      detail: z.string().trim().max(4000).default(""),
+      proposer: z.string().trim().max(80).default(""),
+    }),
+    response: z.object({ id: z.number() }),
+    async handler(ctx, args) {
+      const db = ctx.db<typeof schema>();
+      const result = await db
+        .insert(schema.councilProposals)
+        .values({
+          title: args.title,
+          detail: args.detail,
+          proposer: args.proposer,
+          createdAt: new Date(),
+        })
+        .returning({ id: schema.councilProposals.id });
+      const inserted = result[0];
+      if (!inserted) throw new Error("createProposal: insert returned no rows");
+      await logAudit(
+        ctx,
+        args.proposer || "Hội đồng cố vấn",
+        "Hội đồng cố vấn: mở đề xuất",
+        `"${args.title}" — chờ bỏ phiếu 3/5`,
+      );
+      ctx.invalidateQueries();
+      return { id: inserted.id };
+    },
+  }),
+
+  castVote: defineAction({
+    description:
+      "Casts (or changes) one council member's ballot on an open proposal. At 3 YES the proposal becomes an official recommendation; at 3 NO it is rejected. The full ballot stays in the minutes.",
+    request: z.object({
+      proposal_id: z.number().int().positive(),
+      member: z.enum(["tp-chien-luoc", "tp-phap-che", "tp-tai-chinh", "gd-chat-luong", "tp-cong-nghe"]),
+      vote: z.enum(["YES", "NO"]),
+      note: z.string().trim().max(1000).default(""),
+    }),
+    response: z.object({
+      id: z.number(),
+      yes: z.number(),
+      no: z.number(),
+      status: z.enum(["OPEN", "ADOPTED", "REJECTED"]),
+    }),
+    async handler(ctx, args) {
+      const db = ctx.db<typeof schema>();
+      const rows = await db
+        .select()
+        .from(schema.councilProposals)
+        .where(eq(schema.councilProposals.id, args.proposal_id));
+      const proposal = rows[0];
+      if (!proposal) throw new Error("Không tìm thấy đề xuất này.");
+      if (proposal.status !== "OPEN") {
+        throw new Error("Đề xuất đã chốt biên bản — không bỏ phiếu thêm được.");
+      }
+      await db
+        .delete(schema.councilVotes)
+        .where(
+          and(
+            eq(schema.councilVotes.proposalId, args.proposal_id),
+            eq(schema.councilVotes.member, args.member),
+          ),
+        );
+      const result = await db
+        .insert(schema.councilVotes)
+        .values({
+          proposalId: args.proposal_id,
+          member: args.member,
+          vote: args.vote,
+          note: args.note,
+          createdAt: new Date(),
+        })
+        .returning({ id: schema.councilVotes.id });
+      const inserted = result[0];
+      if (!inserted) throw new Error("castVote: insert returned no rows");
+      const ballots = await db
+        .select()
+        .from(schema.councilVotes)
+        .where(eq(schema.councilVotes.proposalId, args.proposal_id));
+      const yes = ballots.filter((v) => v.vote === "YES").length;
+      const no = ballots.filter((v) => v.vote === "NO").length;
+      let status: "OPEN" | "ADOPTED" | "REJECTED" = "OPEN";
+      if (yes >= 3) status = "ADOPTED";
+      else if (no >= 3) status = "REJECTED";
+      const memberName =
+        STAFF_DIRECTORY.find((s) => s.id === args.member)?.chatName ?? args.member;
+      await logAudit(
+        ctx,
+        memberName,
+        args.vote === "YES" ? "Hội đồng cố vấn: phiếu ĐỒNG Ý" : "Hội đồng cố vấn: phiếu PHẢN ĐỐI",
+        `Đề xuất #${proposal.id} "${proposal.title}" — tỉ số hiện tại ${yes} đồng ý / ${no} phản đối` +
+          (args.note ? ` · Ý kiến: ${args.note}` : ""),
+      );
+      if (status !== "OPEN") {
+        await db
+          .update(schema.councilProposals)
+          .set({ status, closedAt: new Date() })
+          .where(eq(schema.councilProposals.id, args.proposal_id));
+        await logAudit(
+          ctx,
+          "Hội đồng cố vấn",
+          status === "ADOPTED" ? "Hội đồng cố vấn: ĐẠT 3/5 — thành khuyến nghị" : "Hội đồng cố vấn: KHÔNG ĐẠT — bác đề xuất",
+          `Đề xuất #${proposal.id} "${proposal.title}" chốt ${yes} đồng ý / ${no} phản đối. Biên bản bỏ phiếu lưu đầy đủ từng phiếu.`,
+        );
+        await db.insert(schema.messages).values({
+          channel: "company",
+          sender: "Thư ký Chủ tịch",
+          body:
+            status === "ADOPTED"
+              ? `Hội đồng cố vấn đã bỏ phiếu ${yes}/5 đồng ý (đạt ngưỡng 3/5): đề xuất "${proposal.title}" thành KHUYẾN NGHỊ chính thức trình Chủ tịch và Tổng giám đốc quyết định cuối. Biên bản bỏ phiếu đã lưu.`
+              : `Hội đồng cố vấn đã bỏ phiếu ${no}/5 phản đối (đạt ngưỡng 3/5): đề xuất "${proposal.title}" KHÔNG thành khuyến nghị. Biên bản bỏ phiếu đã lưu.`,
+          recipient: "",
+          createdAt: new Date(),
+        });
+      }
+      ctx.invalidateQueries();
+      return { id: inserted.id, yes, no, status };
+    },
+  }),
+
+  listVetoes: defineAction({
+    description:
+      "Lists Quality-block VETO records (each with its mandatory reason code), newest first, active ones first in the UI.",
+    request: z.object({}),
+    response: z.object({
+      vetoes: z.array(
+        z.object({
+          id: z.number(),
+          task_id: z.number().nullable(),
+          target: z.string(),
+          reason_code: z.string(),
+          reason: z.string(),
+          issued_by: z.string(),
+          active: z.boolean(),
+          created_at: z.string(),
+          lifted_at: z.string().nullable(),
+          lifted_by: z.string(),
+        }),
+      ),
+    }),
+    async handler(ctx) {
+      const db = ctx.db<typeof schema>();
+      const rows = await db
+        .select()
+        .from(schema.vetoRecords)
+        .orderBy(desc(schema.vetoRecords.id));
+      return {
+        vetoes: rows.map((v) => ({
+          id: v.id,
+          task_id: v.taskId,
+          target: v.target,
+          reason_code: v.reasonCode,
+          reason: v.reason,
+          issued_by: v.issuedBy,
+          active: v.active === 1,
+          created_at: v.createdAt.toISOString(),
+          lifted_at: v.liftedAt ? v.liftedAt.toISOString() : null,
+          lifted_by: v.liftedBy,
+        })),
+      };
+    },
+  }),
+
+  issueVeto: defineAction({
+    description:
+      "Issues a Quality-block VETO with a mandatory reason code. When tied to a task, the task is forced back to Làm lại and its pipeline is marked blocked with the VETO code — the product cannot pass until the flaw is fixed and the veto is lifted.",
+    request: z.object({
+      task_id: z.number().int().positive().nullable().default(null),
+      target: z.string().trim().max(300).default(""),
+      reason_code: z.enum(["BQ-01", "BQ-02", "CL-01", "CL-02", "AT-01", "AT-02", "KH-01"]),
+      reason: z.string().trim().min(1).max(4000),
+      actor: z.string().trim().max(60).default("GĐ Chất lượng"),
+    }),
+    response: z.object({ id: z.number() }),
+    async handler(ctx, args) {
+      const db = ctx.db<typeof schema>();
+      let target = args.target;
+      let task: TaskRow | undefined;
+      if (args.task_id) {
+        const rows = await db
+          .select()
+          .from(schema.tasks)
+          .where(eq(schema.tasks.id, args.task_id));
+        task = rows[0];
+        if (!task) throw new Error("Không tìm thấy việc để áp VETO.");
+        if (!target) target = `Việc #${task.id} "${task.title}"`;
+      }
+      if (!target) {
+        throw new Error("VETO phải ghi rõ đối tượng bị chặn (chọn một việc hoặc ghi tên sản phẩm).");
+      }
+      const result = await db
+        .insert(schema.vetoRecords)
+        .values({
+          taskId: args.task_id,
+          target,
+          reasonCode: args.reason_code,
+          reason: args.reason,
+          issuedBy: "gd-chat-luong",
+          createdAt: new Date(),
+        })
+        .returning({ id: schema.vetoRecords.id });
+      const inserted = result[0];
+      if (!inserted) throw new Error("issueVeto: insert returned no rows");
+      if (task) {
+        const patch: Partial<TaskRow> = {
+          status: "REVISION_REQUIRED",
+          updatedAt: new Date(),
+        };
+        if (task.pipelineState === "RUNNING" || task.pipelineState === "SCREENING") {
+          patch.pipelineState = "BLOCKED";
+          patch.blockedReason = `VETO ${args.reason_code}: ${args.reason}`;
+        }
+        await db.update(schema.tasks).set(patch).where(eq(schema.tasks.id, task.id));
+      }
+      await logAudit(
+        ctx,
+        args.actor,
+        `VETO ${args.reason_code}`,
+        `${target} — ${args.reason}`,
+      );
+      await db.insert(schema.messages).values({
+        channel: "company",
+        sender: "GĐ Chất lượng",
+        body: `VETO [${args.reason_code}] — Khối Chất lượng chặn ${target}. Lý do: ${args.reason}. Sửa xong đúng mã lỗi này và nộp lại QC, VETO chỉ gỡ khi lỗi đã hết.`,
+        recipient: "",
+        createdAt: new Date(),
+      });
+      ctx.invalidateQueries();
+      return { id: inserted.id };
+    },
+  }),
+
+  liftVeto: defineAction({
+    description:
+      "Lifts an active VETO after the flaw is fixed. Lifting is audit-logged; the task itself still has to pass QC again before it can be approved.",
+    request: z.object({
+      id: z.number().int().positive(),
+      actor: z.string().trim().max(60).default("GĐ Chất lượng"),
+    }),
+    response: z.object({ ok: z.literal(true) }),
+    async handler(ctx, args): Promise<{ ok: true }> {
+      const db = ctx.db<typeof schema>();
+      const rows = await db
+        .select()
+        .from(schema.vetoRecords)
+        .where(eq(schema.vetoRecords.id, args.id));
+      const veto = rows[0];
+      if (!veto) throw new Error("Không tìm thấy lệnh VETO này.");
+      if (veto.active !== 1) throw new Error("VETO này đã được gỡ trước đó.");
+      await db
+        .update(schema.vetoRecords)
+        .set({ active: 0, liftedAt: new Date(), liftedBy: args.actor })
+        .where(eq(schema.vetoRecords.id, args.id));
+      await logAudit(
+        ctx,
+        args.actor,
+        `Gỡ VETO ${veto.reasonCode}`,
+        `${veto.target} — lỗi đã sửa, chờ QC duyệt lại từ đầu.`,
+      );
+      ctx.invalidateQueries();
+      return { ok: true };
+    },
+  }),
+
+  listRisks: defineAction({
+    description:
+      "Lists the company risk board (copyright, account safety, platform policy), newest first.",
+    request: z.object({}),
+    response: z.object({
+      risks: z.array(
+        z.object({
+          id: z.number(),
+          category: z.enum(["copyright", "account", "platform", "other"]),
+          title: z.string(),
+          detail: z.string(),
+          severity: z.enum(["low", "medium", "high"]),
+          status: z.enum(["open", "monitoring", "closed"]),
+          owner: z.string(),
+          created_at: z.string(),
+          updated_at: z.string(),
+        }),
+      ),
+    }),
+    async handler(ctx) {
+      const db = ctx.db<typeof schema>();
+      const rows = await db
+        .select()
+        .from(schema.riskItems)
+        .orderBy(desc(schema.riskItems.id));
+      return {
+        risks: rows.map((r) => ({
+          id: r.id,
+          category: r.category,
+          title: r.title,
+          detail: r.detail,
+          severity: r.severity,
+          status: r.status,
+          owner: r.owner,
+          created_at: r.createdAt.toISOString(),
+          updated_at: r.updatedAt.toISOString(),
+        })),
+      };
+    },
+  }),
+
+  addRisk: defineAction({
+    description:
+      "Adds a risk to the risk board (copyright / account safety / platform). High-severity open risks surface on the Chairman's morning report.",
+    request: z.object({
+      category: z.enum(["copyright", "account", "platform", "other"]).default("other"),
+      title: z.string().trim().min(1).max(300),
+      detail: z.string().trim().max(4000).default(""),
+      severity: z.enum(["low", "medium", "high"]).default("medium"),
+      owner: z.string().trim().max(80).default(""),
+      actor: z.string().trim().max(60).default("Kiểm toán"),
+    }),
+    response: z.object({ id: z.number() }),
+    async handler(ctx, args) {
+      const db = ctx.db<typeof schema>();
+      const now = new Date();
+      const result = await db
+        .insert(schema.riskItems)
+        .values({
+          category: args.category,
+          title: args.title,
+          detail: args.detail,
+          severity: args.severity,
+          owner: args.owner,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning({ id: schema.riskItems.id });
+      const inserted = result[0];
+      if (!inserted) throw new Error("addRisk: insert returned no rows");
+      await logAudit(
+        ctx,
+        args.actor,
+        "Bảng rủi ro: thêm rủi ro",
+        `[${args.category}/${args.severity}] ${args.title}`,
+      );
+      ctx.invalidateQueries();
+      return { id: inserted.id };
+    },
+  }),
+
+  setRiskStatus: defineAction({
+    description: "Moves a risk between open / monitoring / closed on the risk board.",
+    request: z.object({
+      id: z.number().int().positive(),
+      status: z.enum(["open", "monitoring", "closed"]),
+      actor: z.string().trim().max(60).default("Kiểm toán"),
+    }),
+    response: z.object({ ok: z.literal(true) }),
+    async handler(ctx, args): Promise<{ ok: true }> {
+      const db = ctx.db<typeof schema>();
+      const rows = await db
+        .select()
+        .from(schema.riskItems)
+        .where(eq(schema.riskItems.id, args.id));
+      const risk = rows[0];
+      if (!risk) throw new Error("Không tìm thấy rủi ro này.");
+      await db
+        .update(schema.riskItems)
+        .set({ status: args.status, updatedAt: new Date() })
+        .where(eq(schema.riskItems.id, args.id));
+      await logAudit(
+        ctx,
+        args.actor,
+        "Bảng rủi ro: cập nhật trạng thái",
+        `"${risk.title}" → ${args.status}`,
+      );
+      ctx.invalidateQueries();
+      return { ok: true };
+    },
+  }),
+
+  listChannels: defineAction({
+    description:
+      "Lists the platform channel book kept by the Tổng quản nền tảng (YouTube / TikTok / Facebook). Channels only — no invented metrics; numbers arrive when a real connection exists.",
+    request: z.object({}),
+    response: z.object({
+      channels: z.array(
+        z.object({
+          id: z.number(),
+          platform: z.enum(["youtube", "tiktok", "facebook"]),
+          name: z.string(),
+          handle: z.string(),
+          status: z.enum(["active", "paused", "risk"]),
+          note: z.string(),
+          updated_at: z.string(),
+        }),
+      ),
+    }),
+    async handler(ctx) {
+      const db = ctx.db<typeof schema>();
+      const rows = await db
+        .select()
+        .from(schema.platformChannels)
+        .orderBy(asc(schema.platformChannels.platform), asc(schema.platformChannels.id));
+      return {
+        channels: rows.map((c) => ({
+          id: c.id,
+          platform: c.platform,
+          name: c.name,
+          handle: c.handle,
+          status: c.status,
+          note: c.note,
+          updated_at: c.updatedAt.toISOString(),
+        })),
+      };
+    },
+  }),
+
+  upsertChannel: defineAction({
+    description:
+      "Adds or updates one channel in the platform book (Tổng quản nền tảng). Pass id to update, omit to create.",
+    request: z.object({
+      id: z.number().int().positive().nullable().default(null),
+      platform: z.enum(["youtube", "tiktok", "facebook"]),
+      name: z.string().trim().min(1).max(200),
+      handle: z.string().trim().max(200).default(""),
+      status: z.enum(["active", "paused", "risk"]).default("active"),
+      note: z.string().trim().max(2000).default(""),
+      actor: z.string().trim().max(60).default("Tổng quản nền tảng"),
+    }),
+    response: z.object({ id: z.number() }),
+    async handler(ctx, args) {
+      const db = ctx.db<typeof schema>();
+      const now = new Date();
+      if (args.id) {
+        await db
+          .update(schema.platformChannels)
+          .set({
+            platform: args.platform,
+            name: args.name,
+            handle: args.handle,
+            status: args.status,
+            note: args.note,
+            updatedAt: now,
+          })
+          .where(eq(schema.platformChannels.id, args.id));
+        await logAudit(ctx, args.actor, "Tổng quản nền tảng: cập nhật kênh", `${args.platform} — ${args.name}`);
+        ctx.invalidateQueries();
+        return { id: args.id };
+      }
+      const result = await db
+        .insert(schema.platformChannels)
+        .values({
+          platform: args.platform,
+          name: args.name,
+          handle: args.handle,
+          status: args.status,
+          note: args.note,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning({ id: schema.platformChannels.id });
+      const inserted = result[0];
+      if (!inserted) throw new Error("upsertChannel: insert returned no rows");
+      await logAudit(ctx, args.actor, "Tổng quản nền tảng: thêm kênh", `${args.platform} — ${args.name}`);
+      ctx.invalidateQueries();
+      return { id: inserted.id };
+    },
+  }),
+
+  deleteChannel: defineAction({
+    description: "Removes a channel from the platform book.",
+    request: z.object({
+      id: z.number().int().positive(),
+      actor: z.string().trim().max(60).default("Tổng quản nền tảng"),
+    }),
+    response: z.object({ ok: z.literal(true) }),
+    async handler(ctx, args): Promise<{ ok: true }> {
+      const db = ctx.db<typeof schema>();
+      const rows = await db
+        .select()
+        .from(schema.platformChannels)
+        .where(eq(schema.platformChannels.id, args.id));
+      const ch = rows[0];
+      if (!ch) throw new Error("Không tìm thấy kênh này.");
+      await db
+        .delete(schema.platformChannels)
+        .where(eq(schema.platformChannels.id, args.id));
+      await logAudit(ctx, args.actor, "Tổng quản nền tảng: xóa kênh", `${ch.platform} — ${ch.name}`);
       ctx.invalidateQueries();
       return { ok: true };
     },

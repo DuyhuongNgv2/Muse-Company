@@ -174,6 +174,96 @@ export const brandItems = sqliteTable("brand_items", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
 });
 
+// ---------------------------------------------------------------------------
+// Tầng quản trị tập đoàn (nâng cơ cấu tiệm cận / vượt WINHUB):
+// Sổ quyết định của Văn phòng Chủ tịch, Hội đồng cố vấn 5 người bỏ
+// phiếu 3/5 có biên bản, quyền VETO của Khối Chất lượng ghi mã lý
+// do, bảng rủi ro bản quyền / an toàn tài khoản, và sổ kênh của
+// Tổng quản nền tảng. Mọi bảng bắt đầu TRỐNG — chỉ ghi dữ liệu thật
+// do người dùng / nhân viên thao tác, không seed số liệu bịa.
+// ---------------------------------------------------------------------------
+
+export const decisions = sqliteTable("decisions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  body: text("body").notNull().default(""),
+  decidedBy: text("decided_by").notNull().default("chu-tich"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const councilProposals = sqliteTable("council_proposals", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  detail: text("detail").notNull().default(""),
+  proposer: text("proposer").notNull().default(""),
+  // OPEN = đang bỏ phiếu; ADOPTED = đạt 3/5 đồng ý (thành khuyến
+  // nghị chính thức trình Chủ tịch / TGĐ); REJECTED = 3/5 phản đối.
+  status: text("status", { enum: ["OPEN", "ADOPTED", "REJECTED"] })
+    .notNull()
+    .default("OPEN"),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  closedAt: integer("closed_at", { mode: "timestamp_ms" }),
+});
+
+export const councilVotes = sqliteTable("council_votes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  proposalId: integer("proposal_id")
+    .notNull()
+    .references(() => councilProposals.id),
+  member: text("member").notNull(),
+  vote: text("vote", { enum: ["YES", "NO"] }).notNull(),
+  note: text("note").notNull().default(""),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const vetoRecords = sqliteTable("veto_records", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  taskId: integer("task_id").references(() => tasks.id),
+  target: text("target").notNull().default(""),
+  reasonCode: text("reason_code").notNull().default("CL-01"),
+  reason: text("reason").notNull().default(""),
+  issuedBy: text("issued_by").notNull().default("gd-chat-luong"),
+  active: integer("active").notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  liftedAt: integer("lifted_at", { mode: "timestamp_ms" }),
+  liftedBy: text("lifted_by").notNull().default(""),
+});
+
+export const riskItems = sqliteTable("risk_items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  category: text("category", {
+    enum: ["copyright", "account", "platform", "other"],
+  })
+    .notNull()
+    .default("other"),
+  title: text("title").notNull(),
+  detail: text("detail").notNull().default(""),
+  severity: text("severity", { enum: ["low", "medium", "high"] })
+    .notNull()
+    .default("medium"),
+  status: text("status", { enum: ["open", "monitoring", "closed"] })
+    .notNull()
+    .default("open"),
+  owner: text("owner").notNull().default(""),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+export const platformChannels = sqliteTable("platform_channels", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  platform: text("platform", { enum: ["youtube", "tiktok", "facebook"] })
+    .notNull()
+    .default("youtube"),
+  name: text("name").notNull(),
+  handle: text("handle").notNull().default(""),
+  status: text("status", { enum: ["active", "paused", "risk"] })
+    .notNull()
+    .default("active"),
+  note: text("note").notNull().default(""),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 export const meetings = sqliteTable("meetings", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   room: text("room").notNull().default("video"),

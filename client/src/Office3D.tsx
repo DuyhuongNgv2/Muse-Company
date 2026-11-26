@@ -129,6 +129,39 @@ export const STAFF_APPEARANCES: Record<string, StaffAppearance> = {
   "tp-phap-che": { gender: "Nam", skin: 0xe2ac72, hairColor: 0x1a1210, hairStyle: "short", outfit: 0x5b4a8a, outfitStyle: "blazer", height: 1.03, leader: true },
   "legal-nv1": { gender: "Nữ", skin: 0xf0c08e, hairColor: 0x241610, hairStyle: "long", outfit: 0xc65b7c, outfitStyle: "dress", height: 0.96 },
   "legal-nv2": { gender: "Nam", skin: 0xcf9457, hairColor: 0x120c08, hairStyle: "buzz", outfit: 0x607d8a, outfitStyle: "shirt", height: 1.01 },
+  // 11 người của Phòng Chiếu / Kho / In ấn / Phòng Họp Lớn trước
+  // đây THIẾU hẳn mục diện mạo nên cả 11 cùng rơi về
+  // DEFAULT_APPEARANCE (áo xám, tóc ngắn, nam) — nhìn như một
+  // người lặp lại 11 lần, các trưởng phòng còn mất cả hạng thẻ
+  // "head" (staffTagRank đọc cờ leader ở đây). Nay mỗi người một
+  // diện mạo riêng đúng giới tính trong danh bạ, màu áo theo màu
+  // cá nhân đã chốt ở App.tsx STAFF, không trùng người cùng phòng.
+  "tp-chieu": { gender: "Nam", skin: 0xe8b88a, hairColor: 0x1c1310, hairStyle: "swept", outfit: 0x0e7bb5, outfitStyle: "blazer", height: 1.04, leader: true },
+  "chieu-nv1": { gender: "Nữ", skin: 0xf5c99b, hairColor: 0x2b1a10, hairStyle: "long", outfit: 0xd43a54, outfitStyle: "dress", height: 0.96 },
+  "chieu-nv2": { gender: "Nam", skin: 0xd9a066, hairColor: 0x140e0a, hairStyle: "short", outfit: 0x3f9e4d, outfitStyle: "polo", height: 1.01 },
+  "tk-kho": { gender: "Nam", skin: 0xe2ac72, hairColor: 0x20120c, hairStyle: "buzz", outfit: 0xa87b0a, outfitStyle: "vest", height: 1.02, leader: true },
+  "kho-nv1": { gender: "Nữ", skin: 0xf2c294, hairColor: 0x33200f, hairStyle: "ponytail", outfit: 0x0891b2, outfitStyle: "dress", height: 0.95 },
+  "kho-nv2": { gender: "Nam", skin: 0xcf9457, hairColor: 0x1a1210, hairStyle: "swept", outfit: 0x7e57c2, outfitStyle: "shirt", height: 1.03 },
+  "tp-in-an": { gender: "Nam", skin: 0xe8b88a, hairColor: 0x120c08, hairStyle: "short", outfit: 0xdb2777, outfitStyle: "blazer", height: 1.05, leader: true },
+  "in-an-nv1": { gender: "Nữ", skin: 0xf0c08e, hairColor: 0x241610, hairStyle: "bob", outfit: 0x14b8a6, outfitStyle: "dress", height: 0.94 },
+  "in-an-nv2": { gender: "Nam", skin: 0xd69a5e, hairColor: 0x1c1310, hairStyle: "swept", outfit: 0xe07b2a, outfitStyle: "polo", height: 1.0 },
+  "tp-hop": { gender: "Nữ", skin: 0xf5c99b, hairColor: 0x2b1a10, hairStyle: "bun", outfit: 0x7c5cf0, outfitStyle: "blazer", height: 0.98, leader: true },
+  "hop-nv1": { gender: "Nam", skin: 0xecc090, hairColor: 0x140e0a, hairStyle: "short", outfit: 0x5c940d, outfitStyle: "shirt", height: 1.02 },
+  // Tầng quản trị (Kiểm toán độc lập, GĐ Chất lượng, R&D, Tổng
+  // quản nền tảng, Công nghệ): bổ sung diện mạo cho đủ 59/59
+  // người trong danh bạ — các ghế này sống ở tầng sơ đồ tổ chức,
+  // nhưng hạng thẻ + diện mạo phải sẵn sàng và không ai được rơi
+  // về diện mạo mặc định.
+  "kiem-toan": { gender: "Nam", skin: 0xd9a066, hairColor: 0x1a1210, hairStyle: "short", outfit: 0x991b1b, outfitStyle: "vest", height: 1.04, glasses: true, leader: true },
+  "gd-chat-luong": { gender: "Nữ", skin: 0xf2c294, hairColor: 0x20120c, hairStyle: "ponytail", outfit: 0xc02626, outfitStyle: "blazer", height: 0.97, leader: true },
+  "tp-rd": { gender: "Nam", skin: 0xe8b88a, hairColor: 0x241610, hairStyle: "swept", outfit: 0x6d28d9, outfitStyle: "blazer", height: 1.03, leader: true },
+  "rd-nv1": { gender: "Nữ", skin: 0xf0c08e, hairColor: 0x33200f, hairStyle: "bob", outfit: 0x0d9488, outfitStyle: "shirt", height: 0.95 },
+  "rd-nv2": { gender: "Nam", skin: 0xcf9457, hairColor: 0x120c08, hairStyle: "buzz", outfit: 0xb45309, outfitStyle: "polo", height: 1.01 },
+  "tong-quan-nen-tang": { gender: "Nữ", skin: 0xf5c99b, hairColor: 0x1c1310, hairStyle: "long", outfit: 0x059669, outfitStyle: "dress", height: 0.96, leader: true },
+  "nen-tang-nv1": { gender: "Nam", skin: 0xe2ac72, hairColor: 0x1a1210, hairStyle: "short", outfit: 0x4d7c0f, outfitStyle: "shirt", height: 1.0 },
+  "tp-cong-nghe": { gender: "Nam", skin: 0xe8b88a, hairColor: 0x140e0a, hairStyle: "swept", outfit: 0x0369a1, outfitStyle: "vest", height: 1.05, glasses: true, leader: true },
+  "cong-nghe-nv1": { gender: "Nam", skin: 0xd69a5e, hairColor: 0x20120c, hairStyle: "short", outfit: 0x57534e, outfitStyle: "polo", height: 1.02 },
+  "cong-nghe-nv2": { gender: "Nữ", skin: 0xf2c294, hairColor: 0x2b1a10, hairStyle: "ponytail", outfit: 0xbe185d, outfitStyle: "shirt", height: 0.94 },
 };
 
 const DEFAULT_APPEARANCE: StaffAppearance = {
@@ -662,7 +695,74 @@ const ZONE_NAMES: Record<string, string> = {
   "zone-sport": "Khu thể thao nhẹ",
 };
 
-function makeNameplate(label: string): THREE.Mesh {
+// BẢNG CHỨC VỤ TRÊN BÀN (Chủ tịch chốt): bảng đặt trên bàn chỉ
+// ghi CHỨC VỤ của người ngồi — KHÔNG ghi tên riêng, KHÔNG ghi
+// giới tính (bản cũ in "Tên · Nữ" là sai chuẩn). Chức vụ lấy từ
+// đúng chức danh trong danh bạ công ty (App.tsx STAFF.role, lấy
+// đoạn chức danh trước dấu —).
+const STAFF_TITLES: Record<string, string> = {
+  "chu-tich": "Chủ tịch",
+  "van-thu": "Văn thư",
+  "tong-giam-doc": "Tổng giám đốc",
+  "thu-ky": "Thư ký Chủ tịch",
+  "tro-ly": "Trợ lý Tổng giám đốc",
+  "le-tan": "Lễ tân",
+  "dao-dien": "Đạo diễn · Trưởng phòng Video",
+  "video-01": "Nhân viên dựng video",
+  "video-02": "Nhân viên dựng video",
+  "video-03": "Nhân viên dựng video",
+  qc: "Kiểm soát chất lượng",
+  "tp-marketing": "Trưởng phòng Marketing",
+  "marketing-nv1": "Nhân viên Marketing",
+  "marketing-nv2": "Nhân viên Marketing",
+  "tp-chien-luoc": "Trưởng phòng Chiến lược",
+  "strategy-nv1": "Nhân viên Chiến lược",
+  "strategy-nv2": "Nhân viên Chiến lược",
+  "tp-nhan-su": "Trưởng phòng Nhân sự",
+  "hr-nv1": "Nhân viên Nhân sự",
+  "hr-nv2": "Nhân viên Nhân sự",
+  "tp-kinh-doanh": "Trưởng phòng Kinh doanh",
+  "sales-nv1": "Nhân viên Kinh doanh",
+  "sales-nv2": "Nhân viên Kinh doanh",
+  "tp-noi-dung": "Trưởng phòng Nội dung",
+  "content-nv1": "Nhân viên Nội dung",
+  "content-nv2": "Nhân viên Nội dung",
+  "tp-am-thanh": "Trưởng phòng Âm thanh",
+  "sound-nv1": "Nhân viên Âm thanh",
+  "sound-nv2": "Nhân viên Âm thanh",
+  "tp-dang-tai": "Trưởng phòng Đăng tải & SEO",
+  "publish-nv1": "Nhân viên Đăng tải & SEO",
+  "publish-nv2": "Nhân viên Đăng tải & SEO",
+  "tp-chieu": "Trưởng phòng Chiếu",
+  "chieu-nv1": "Nhân viên Phòng Chiếu",
+  "chieu-nv2": "Nhân viên Phòng Chiếu",
+  "tk-kho": "Quản kho",
+  "kho-nv1": "Nhân viên Kho Sản phẩm",
+  "kho-nv2": "Nhân viên Kho Sản phẩm",
+  "tp-in-an": "Trưởng phòng In ấn",
+  "in-an-nv1": "Nhân viên Phòng In ấn",
+  "in-an-nv2": "Nhân viên Phòng In ấn",
+  "tp-tai-chinh": "Trưởng phòng Tài chính – Kế toán",
+  "finance-nv1": "Nhân viên Tài chính – Kế toán",
+  "finance-nv2": "Nhân viên Tài chính – Kế toán",
+  "tp-phap-che": "Trưởng phòng Pháp chế",
+  "legal-nv1": "Nhân viên Pháp chế",
+  "legal-nv2": "Nhân viên Pháp chế",
+  "tp-hop": "Trưởng phòng Họp Lớn",
+  "hop-nv1": "Nhân viên Phòng Họp Lớn",
+  "kiem-toan": "Trưởng Kiểm toán nội bộ",
+  "gd-chat-luong": "Giám đốc Chất lượng",
+  "tp-rd": "Trưởng phòng R&D",
+  "rd-nv1": "Nhân viên R&D",
+  "rd-nv2": "Nhân viên R&D",
+  "tong-quan-nen-tang": "Tổng quản nền tảng",
+  "nen-tang-nv1": "Nhân viên Quản lý nền tảng",
+  "tp-cong-nghe": "Giám đốc Công nghệ (CTO)",
+  "cong-nghe-nv1": "Nhân viên Công nghệ",
+  "cong-nghe-nv2": "Nhân viên Công nghệ",
+};
+
+function makeNameplate(label: string): THREE.Group {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
   canvas.height = 96;
@@ -675,27 +775,38 @@ function makeNameplate(label: string): THREE.Mesh {
     g.strokeRect(4, 4, 504, 88);
     g.fillStyle = "#ffffff";
     g.textAlign = "center";
-    const text = label.length > 24 ? label.slice(0, 24) : label;
-    // Cỡ chữ tự co cho vừa khung 512: tên dài + hậu tố giới
-    // tính không còn tràn mép / cắt chữ ở hai đầu bảng.
+    const text = label.length > 36 ? label.slice(0, 36) : label;
+    // Cỡ chữ tự co cho vừa khung 512: chức vụ dài (Tài chính –
+    // Kế toán…) không tràn mép / cắt chữ ở hai đầu bảng.
     let fs = 37;
     g.font = `bold ${fs}px 'Segoe UI', system-ui, sans-serif`;
     const tw = g.measureText(text).width;
     if (tw > 470) {
-      fs = Math.max(24, Math.floor((fs * 470) / tw));
+      fs = Math.max(20, Math.floor((fs * 470) / tw));
       g.font = `bold ${fs}px 'Segoe UI', system-ui, sans-serif`;
     }
     g.fillText(text, 256, 62);
   }
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
-  // Bảng tên NGẮN lại (0.85 × 0.16 thay cho 1.15 × 0.22): Chủ tịch
-  // chê bảng cũ dài, nằm chắn ngang mặt bàn không làm việc được.
-  const plate = new THREE.Mesh(
+  // Bảng chức vụ NGẮN (0.85 × 0.16): không chắn ngang mặt bàn
+  // như cỡ cũ. Vị trí + hướng mặt bảng do nơi dựng bàn quyết
+  // (mép bàn phía khách, mặt quay ra khách — xem buildWorkstation).
+  // Bảng là một KHỐI có lưng hẳn hoi (tấm đỡ tối phía sau +
+  // mặt chữ phía trước): bản cũ chỉ là một plane một mặt —
+  // nhìn từ phía người ngồi / từ sau lưng là bảng TÀNG HÌNH,
+  // chỉ còn một tấm chữ lơ lửng khi nhìn từ phía khách.
+  const plate = new THREE.Group();
+  const back = new THREE.Mesh(
+    new THREE.BoxGeometry(0.88, 0.19, 0.02),
+    new THREE.MeshStandardMaterial({ color: 0x17102e, roughness: 0.45 }),
+  );
+  const face = new THREE.Mesh(
     new THREE.PlaneGeometry(0.85, 0.16),
     new THREE.MeshBasicMaterial({ map: tex }),
   );
-  plate.rotation.x = -0.35;
+  face.position.z = 0.012;
+  plate.add(back, face);
   return plate;
 }
 
@@ -768,6 +879,8 @@ interface AvatarRig {
   bodyGroup: THREE.Group;
   legL: THREE.Group;
   legR: THREE.Group;
+  shinL: THREE.Group;
+  shinR: THREE.Group;
   head: THREE.Group;
   armL: THREE.Group;
   armR: THREE.Group;
@@ -775,6 +888,14 @@ interface AvatarRig {
   door: THREE.Vector3;
   seatRotY: number;
   sit: number;
+  // Tỉ lệ chiều cao của riêng người này (group.scale): cao độ
+  // mặt ghế đo trong không gian phòng phải chia cho hệ số này
+  // mới ra cao độ khớp hông trong không gian avatar.
+  hScale: number;
+  // Cao độ khớp hông khi ngồi tại đích hiện tại (không gian
+  // avatar) = (cao độ mặt ghế thật + 0.07) / hScale — vòng
+  // lặp tư thế giải góc đùi từ số này để bàn chân chạm sàn.
+  hipGoal: number;
   pos: THREE.Vector3;
   phase: number;
   via: THREE.Vector3 | null;
@@ -793,7 +914,7 @@ interface AvatarRig {
 function buildAvatar(
   staffId: string,
   fallbackColor: number,
-): Omit<AvatarRig, "seat" | "door" | "seatRotY" | "sit" | "pos" | "phase" | "via" | "path" | "targetKey" | "stride" | "speed" | "startAt" | "pauseUntil" | "nextPauseAt" | "folder"> {
+): Omit<AvatarRig, "seat" | "door" | "seatRotY" | "sit" | "pos" | "phase" | "via" | "path" | "targetKey" | "stride" | "speed" | "startAt" | "pauseUntil" | "nextPauseAt" | "folder" | "hipGoal"> {
   const ap: StaffAppearance = STAFF_APPEARANCES[staffId] ?? {
     ...DEFAULT_APPEARANCE,
     outfit: fallbackColor,
@@ -808,14 +929,22 @@ function buildAvatar(
 
   // Torso: narrower shoulders for women, a flared skirt for dresses, a white
   // shirt front + tie for the CEO's / sales lead's vest look.
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(female ? 0.2 : 0.23, 0.4, 4, 12), outfitMat);
-  torso.position.y = 0.66;
+  // TỈ LỆ THÂN MỚI (audit toàn diện 2026-11-26): khớp hông
+  // đứng ở 0.73 (chân dài ra — xem mkLeg), thân dời lên theo
+  // và ĐÁY THÂN CHỈ XUỐNG DƯỚI KHỚP HÔNG 0.12 (0.61 so với
+  // hông 0.73): khi ngồi, đáy thân TỲ LÊN mặt ghế, chìm vào
+  // đệm tối đa 0.05 là hết — bản cũ đáy thân ở 0.285, tức
+  // 0.235 DƯỚI khớp hông, nên hễ ngồi là cả khối thân xuyên
+  // qua đệm ghế và thòi xuống dưới mặt ghế quanh trụ ghế,
+  // đọc thành người lẫn vào ghế / ngồi bệt.
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(female ? 0.2 : 0.23, 0.22, 4, 12), outfitMat);
+  torso.position.y = 0.95;
   torso.scale.set(1, 1, 0.82);
   torso.castShadow = true;
   bodyGroup.add(torso);
   if (ap.outfitStyle === "dress") {
-    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.33, 0.34, 14), outfitMat);
-    skirt.position.y = 0.38;
+    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.33, 0.36, 14), outfitMat);
+    skirt.position.y = 0.78;
     skirt.castShadow = true;
     bodyGroup.add(skirt);
   }
@@ -824,20 +953,20 @@ function buildAvatar(
       new THREE.BoxGeometry(0.17, 0.34, 0.03),
       new THREE.MeshStandardMaterial({ color: 0xf5f2ea, roughness: 0.7 }),
     );
-    shirtFront.position.set(0, 0.74, -0.185);
+    shirtFront.position.set(0, 1.005, -0.185);
     bodyGroup.add(shirtFront);
     if (ap.outfitStyle === "vest") {
       const tie = new THREE.Mesh(
         new THREE.BoxGeometry(0.055, 0.26, 0.015),
         new THREE.MeshStandardMaterial({ color: 0x8e1f2f, roughness: 0.55 }),
       );
-      tie.position.set(0, 0.72, -0.205);
+      tie.position.set(0, 0.985, -0.205);
       bodyGroup.add(tie);
     }
   }
   if (ap.outfitStyle === "polo") {
     const collar = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.028, 8, 16), outfitMat);
-    collar.position.set(0, 0.98, 0);
+    collar.position.set(0, 1.245, 0);
     collar.rotation.x = Math.PI / 2.3;
     bodyGroup.add(collar);
   }
@@ -847,7 +976,7 @@ function buildAvatar(
       new THREE.BoxGeometry(0.1, 0.13, 0.015),
       new THREE.MeshStandardMaterial({ color: 0xf2c14e, roughness: 0.3, metalness: 0.65 }),
     );
-    badge.position.set(female ? 0.13 : 0.14, 0.82, -0.2);
+    badge.position.set(female ? 0.13 : 0.14, 1.085, -0.2);
     bodyGroup.add(badge);
   }
   // Lễ tân Ngọc Anh đeo THẺ NHÂN VIÊN thật trước ngực: thẻ trắng có dải
@@ -858,7 +987,7 @@ function buildAvatar(
     const strapMat = new THREE.MeshStandardMaterial({ color: 0x0e5a6d, roughness: 0.6 });
     for (const s of [-1, 1]) {
       const strap = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.34, 0.012), strapMat);
-      strap.position.set(0.055 * s, 0.93, -0.185);
+      strap.position.set(0.055 * s, 1.195, -0.185);
       strap.rotation.z = -0.32 * s;
       strap.rotation.x = 0.1;
       bodyGroup.add(strap);
@@ -867,32 +996,32 @@ function buildAvatar(
       new THREE.BoxGeometry(0.13, 0.17, 0.016),
       new THREE.MeshStandardMaterial({ color: 0xf7f5ef, roughness: 0.35 }),
     );
-    card.position.set(0, 0.72, -0.205);
+    card.position.set(0, 0.985, -0.205);
     card.rotation.x = 0.08;
     bodyGroup.add(card);
     const cardBand = new THREE.Mesh(
       new THREE.BoxGeometry(0.13, 0.045, 0.018),
       new THREE.MeshStandardMaterial({ color: 0x0e5a6d, roughness: 0.4 }),
     );
-    cardBand.position.set(0, 0.775, -0.206);
+    cardBand.position.set(0, 1.04, -0.206);
     cardBand.rotation.x = 0.08;
     bodyGroup.add(cardBand);
     const cardPhoto = new THREE.Mesh(
       new THREE.BoxGeometry(0.05, 0.06, 0.018),
       new THREE.MeshStandardMaterial({ color: 0xfb923c, roughness: 0.5 }),
     );
-    cardPhoto.position.set(-0.028, 0.715, -0.206);
+    cardPhoto.position.set(-0.028, 0.98, -0.206);
     cardPhoto.rotation.x = 0.08;
     bodyGroup.add(cardPhoto);
   }
   // Neck.
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.075, 0.12, 10), skinMat);
-  neck.position.y = 1.06;
+  neck.position.y = 1.325;
   bodyGroup.add(neck);
 
   // Head group (front faces −Z, toward the desk): skin, face, hair.
   const head = new THREE.Group();
-  head.position.y = 1.26;
+  head.position.y = 1.525;
   const skull = new THREE.Mesh(new THREE.SphereGeometry(0.2, 22, 18), skinMat);
   skull.scale.set(0.94, 1.06, 0.98);
   skull.castShadow = true;
@@ -1009,7 +1138,7 @@ function buildAvatar(
   // Arms on shoulder pivots: outfit sleeves + skin hands.
   const mkArm = (side: number) => {
     const pivot = new THREE.Group();
-    pivot.position.set((female ? 0.29 : 0.32) * side, 1.0, 0);
+    pivot.position.set((female ? 0.29 : 0.32) * side, 1.21, 0);
     // Tay bo tròn dạng ống (capsule) thay cho hộp vuông — dáng
     // người bớt "khối hộp" hẳn, cử động gõ phím trông tự nhiên.
     const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.055, 0.35, 4, 10), outfitMat);
@@ -1031,23 +1160,43 @@ function buildAvatar(
       ? skinMat
       : new THREE.MeshStandardMaterial({ color: female ? 0x3a3358 : 0x27223f, roughness: 0.9 });
   const shoeMat = new THREE.MeshStandardMaterial({ color: 0x17121f, roughness: 0.5 });
+  // Chân HAI ĐOẠN có khớp GỐI thật (đùi + cẳng chân riêng):
+  // đùi xoay quanh hông, cẳng chân xoay quanh gối: ngồi = đùi
+  // gập về trước + cẳng chân thả thẳng xuống + giày đáp sàn;
+  // đi = gối gập theo nhịp bước.
+  // Kích thước MỚI (audit 2026-11-26): hông → gối 0.34,
+  // gối → tâm giày 0.36, khớp hông đứng ở 0.73, tâm giày
+  // đứng ở cao độ 0.03. Bản cũ chân chỉ dài 0.27 + 0.23 =
+  // 0.50 trong khi MẶT GHẾ BÀN CAO 0.52 — chân ngắn hơn cả
+  // chiều cao ghế thì không tư thế nào vừa "hông trên mặt
+  // ghế" vừa "chân chạm sàn" được; đó là gốc hình học của
+  // lỗi ngồi lún vào ghế / ngồi như ngồi sàn ở MỌI chỗ ngồi.
   const mkLeg = (side: number) => {
     const leg = new THREE.Group();
-    leg.position.set(0.1 * side, 0.52, 0);
-    // Chân bo tròn dạng ống (capsule) thay cho hộp vuông.
-    const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.37, 4, 10), legMat);
-    mesh.position.y = -0.25;
+    leg.position.set(0.1 * side, 0.73, 0);
+    // Đùi bo tròn dạng ống (capsule) thay cho hộp vuông.
+    const thigh = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.2, 4, 10), legMat);
+    thigh.position.y = -0.17;
+    thigh.castShadow = true;
+    leg.add(thigh);
+    // Khớp gối: nhóm con ở cuối đùi, mang cẳng chân + giày.
+    const shin = new THREE.Group();
+    shin.position.y = -0.34;
+    const calf = new THREE.Mesh(new THREE.CapsuleGeometry(0.058, 0.245, 4, 10), legMat);
+    calf.position.y = -0.18;
+    calf.castShadow = true;
     // Giày bo tròn (cầu ép dẹt) thay cho hộp vuông.
     const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), shoeMat);
-    shoe.position.set(0, -0.5, -0.03);
+    shoe.position.set(0, -0.36, -0.03);
     shoe.scale.set(0.82, 0.42, 1.5);
-    leg.add(mesh, shoe);
-    return leg;
+    shin.add(calf, shoe);
+    leg.add(shin);
+    return { leg, shin };
   };
-  const legL = mkLeg(-1);
-  const legR = mkLeg(1);
+  const { leg: legL, shin: shinL } = mkLeg(-1);
+  const { leg: legR, shin: shinR } = mkLeg(1);
   group.add(bodyGroup, legL, legR);
-  return { group, bodyGroup, legL, legR, head, armL, armR };
+  return { group, bodyGroup, legL, legR, shinL, shinR, head, armL, armR, hScale: ap.height };
 }
 
 interface SteamPuff {
@@ -1280,7 +1429,7 @@ function artTexture(seed: number): THREE.CanvasTexture {
 
 // One full workstation: desk, monitor, keyboard, chair, nameplate, desk lamp.
 function buildWorkstation(
-  person: { initials: string; color: number; name?: string; gender?: "Nam" | "Nữ" },
+  person: { id?: string; initials: string; color: number; name?: string; gender?: "Nam" | "Nữ" },
   lampKind: LampKind,
   big = false,
   opts?: {
@@ -1381,16 +1530,23 @@ function buildWorkstation(
   back.position.set(0, exec ? 0.95 : 0.86, 0.86);
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.44, 8), chairMat);
   post.position.set(0, 0.24, 0.62);
-  // Nameplate on the front edge of the desk: full name + gender, matching the
-  // person sitting there (falls back to initials for unnamed seats).
+  // Bảng CHỨC VỤ trên bàn (Chủ tịch chốt): chỉ ghi chức vụ của
+  // người ngồi — không tên riêng, không giới tính. Ghế trống
+  // chưa có chức danh thì mới lùi về tên / ký hiệu ghế.
   const plate = makeNameplate(
-    person.name
-      ? `${person.name}${person.gender ? ` · ${person.gender}` : ""}`
-      : person.initials,
+    (person.id ? STAFF_TITLES[person.id] : undefined) ??
+      (person.name ? (person.name.split("—")[0]?.trim() ?? person.initials) : person.initials),
   );
-  // Bảng tên dạt về GÓC PHẢI mép bàn, chừa trống toàn bộ khu vực
-  // tay gõ phím / chuột / giấy tờ ở giữa bàn.
-  plate.position.set(0.58, 0.85, 0.44);
+  // Bảng đứng ở MÉP BÀN PHÍA KHÁCH (mép −Z, phía đối diện ghế
+  // ngồi), dạt về góc phải, chừa trống khu vực tay gõ phím /
+  // chuột / giấy tờ; MẶT BẢNG QUAY RA NGOÀI về phía khách /
+  // người đối diện (xoay π quanh Y) và hơi ngửa lên cho dễ đọc
+  // — bản cũ đặt ở mép phía người ngồi, mặt quay VÀO người
+  // ngồi nên khách chỉ thấy lưng bảng.
+  plate.position.set(0.58, 0.87, -0.42);
+  plate.rotation.order = "YXZ";
+  plate.rotation.y = Math.PI;
+  plate.rotation.x = -0.32;
   // Desk lamp with the live status colour.
   const lampMat = new THREE.MeshStandardMaterial({
     color: 0x222222,
@@ -5627,7 +5783,7 @@ export function Office3D({
           new THREE.BoxGeometry(0.36, 0.46, 0.035),
           new THREE.MeshStandardMaterial({ color: 0xc9a227, roughness: 0.6 }),
         );
-        folder.position.set(0.24, 0.78, -0.3);
+        folder.position.set(0.24, 1.02, -0.3);
         folder.rotation.x = -0.15;
         folder.visible = false;
         rig.bodyGroup.add(folder);
@@ -5660,6 +5816,7 @@ export function Office3D({
                 : new THREE.Vector3(room.x, baseY + 0.22, room.z + room.d / 2 + 0.55),
           seatRotY: unitRotY,
           sit: 1,
+          hipGoal: 0.48,
           pos: seatPos.clone(),
           phase: phaseSeed % 6,
           via: null,
@@ -6138,10 +6295,16 @@ export function Office3D({
     teaTable(-2.9, 17.3);
     teaTable(2.9, 17.3);
     // Two sofas flanking the tea area, facing inward.
+    // HƯỚNG SOFA (audit 2026-11-26): mặt mở của sofa là phía
+    // +Z cục bộ (đệm tựa nằm ở −Z); muốn mặt mở hướng VÀO tâm
+    // khu trà thì sofa trái (x<0) phải quay +π/2 và sofa phải
+    // quay −π/2 — bản cũ gán ngược dấu, cả hai sofa quay mặt
+    // RA NGOÀI tường, người ngồi thư giãn ở đó quay lưng vào
+    // khu trà.
     for (const sx of [-5.5, 5.5]) {
       const sofa = buildSofa(0x5d4a2f);
       sofa.position.set(sx, 0, 17.3);
-      sofa.rotation.y = sx < 0 ? -Math.PI / 2 : Math.PI / 2;
+      sofa.rotation.y = sx < 0 ? Math.PI / 2 : -Math.PI / 2;
       tea.add(sofa);
     }
     for (const [px, pz] of [[-6.2, 8.4], [6.2, 8.4], [-6.2, 12.0], [6.2, 12.0], [-6.2, 15.4], [6.2, 15.4]] as const) {
@@ -6171,10 +6334,13 @@ export function Office3D({
       sg.fillStyle = "#ffffff";
       sg.font = "bold 84px 'Segoe UI', system-ui, sans-serif";
       sg.textAlign = "center";
-      sg.fillText("MUSE COMPANY", 512, 96);
+      sg.fillText("MUSE COMPANY", 512, 94);
+      // Dòng phụ là TÊN PHÁP LÝ ĐẦY ĐỦ của công ty (Chủ tịch chốt
+      // 2026-11-26) — biển công ty chuyên nghiệp hẳn hoi, không
+      // còn nhãn "Cửa chính công ty" như biển chỉ dẫn cổng.
       sg.fillStyle = "#e8c860";
-      sg.font = "40px 'Segoe UI', system-ui, sans-serif";
-      sg.fillText("★ CỬA CHÍNH CÔNG TY ★", 512, 158);
+      sg.font = "600 33px 'Segoe UI', system-ui, sans-serif";
+      sg.fillText("CÔNG TY TNHH SẢN XUẤT NỘI DUNG SỐ", 512, 156);
     }
     const signTex = new THREE.CanvasTexture(signCanvas);
     signTex.colorSpace = THREE.SRGBColorSpace;
@@ -6260,7 +6426,7 @@ export function Office3D({
       // ngồi gõ phím, camera đứng trước mặt chếch một góc (thấy mặt +
       // tay gõ + màn hình), khoảng cách ~3.1 — ngồi gần như ảnh mẫu.
       const flyDesk = (pos: THREE.Vector3, rotY: number) => {
-        cam.targetGoal.set(pos.x, pos.y + 0.95 - FLOOR_DROP, pos.z);
+        cam.targetGoal.set(pos.x, pos.y + 1.22 - FLOOR_DROP, pos.z);
         cam.distGoal = 3.1;
         cam.elevGoal = 0.34;
         cam.thetaGoal = rotY + Math.PI - 0.55;
@@ -7043,6 +7209,14 @@ export function Office3D({
             let targetDoor: THREE.Vector3 | null = null;
             let lean = 0;
             let restVariant = -1;
+            // Cao độ khớp hông khi ngồi = MẶT GHẾ THẬT của chỗ
+            // ngồi + 0.07 (đáy thân tỳ lên mặt ghế, chìm vào
+            // đệm 0.05 là hết), đổi về không gian avatar theo
+            // tỉ lệ chiều cao của chính người đó. Mặc định:
+            // ghế bàn / ghế họp, mặt ngồi 0.52. Các điểm thư
+            // giãn (sofa, ghế trà…) ghi đè ở nhánh resting dưới.
+            const hipFor = (seatTop: number) => (seatTop + 0.07) / (rig.hScale || 1);
+            rig.hipGoal = hipFor(0.52);
             if (kind === "meeting" && (id === "dao-dien" || id === "qc")) {
               const seatDef = meetingSeatsRef.current[id === "dao-dien" ? 1 : 4];
               if (seatDef) {
@@ -7136,28 +7310,55 @@ export function Office3D({
                 targetRotY = 2.6;
                 targetSit = 1;
                 lean = 1;
+                // Ghế trà: mặt ngồi đo thật 0.485.
+                rig.hipGoal = hipFor(0.485);
               } else if (restVariant === 1) {
                 // Relax spots spread across the office so people do not
                 // pile onto one sofa: lobby sofa, tea-table chairs, tea
                 // sofas and the bonsai garden edge — picked per person
                 // with a small sideways offset.
-                const relaxSpots: [number, number, number][] = [
-                  [-6.6, 19.45, 0],
-                  [-5.2, 19.45, 0],
-                  [-2.4, 18.2, 0.5],
-                  [3.4, 18.2, 0.5],
-                  [-2.4, 16.4, 2.6],
-                  [1.9, 17.1, 4.5],
-                  [-6.1, 16.2, -1.2],
-                  [6.1, 16.2, 1.2],
+                // MỖI ĐIỂM = [x, z, hướng mặt, CAO ĐỘ MẶT NGỒI ĐO
+                // THẬT của đúng món nội thất tại điểm đó] (audit
+                // 2026-11-26): bản cũ gán một hipGoal chung cho
+                // mọi điểm và vài điểm không có ghế nào ở
+                // dưới (sofa trà lệch hẳn ra ngoài sofa, điểm ăn
+                // uống đứng giữa bàn và ghế, ghế thư viện quay
+                // mặt VÀO lưng ghế) — người ngồi lơ lửng / quay
+                // ngược. Nay từng điểm khớp tọa độ + hướng +
+                // mặt ngồi của ghế / sofa / ghế đá thật.
+                const relaxSpots: [number, number, number, number][] = [
+                  // Sofa chờ sảnh (mặt ngồi 0.53): hông đặt GIỮA
+                  // đệm, sát đệm tựa — bản cũ z=19.45 lệch ra
+                  // trước mép ghế 0.25, ngồi như sắp tuột.
+                  [-6.55, 20.05, 0, 0.53],
+                  [-5.45, 20.05, 0, 0.53],
+                  // Ghế trà quanh 2 bàn trà (mặt ngồi 0.485),
+                  // tọa độ + hướng khớp đúng ghế đã dựng.
+                  [-2.4, 18.2, 0.5, 0.485],
+                  [3.4, 18.2, 0.5, 0.485],
+                  [-2.4, 16.4, 2.6, 0.485],
+                  [1.9, 17.1, 4.5, 0.485],
+                  // Sofa trà hai bên (mặt ngồi 0.53) — sofa đã
+                  // quay mặt VÀO khu trà (xem khối dựng sofa trà),
+                  // điểm ngồi nằm trên đệm, mặt hướng vào trong.
+                  [-5.62, 16.85, -1.57, 0.53],
+                  [5.62, 16.85, 1.57, 0.53],
                   // Điểm thư giãn trong 5 khu tiện ích hai bên sườn: ghế
                   // đá khu vườn xanh, ghế đọc thư viện, ghế bàn ăn khu ăn
                   // uống, ghế thư giãn khu giải trí — người rảnh đi thẳng
                   // theo thảm vào tận khu, không đi vòng.
-                  [-16.6, -24.9, -2.4],
-                  [-22.6, -18.2, 0],
-                  [15.5, -23.2, 3.1],
-                  [-11.6, -19.7, -1.57],
+                  // Ghế đá vườn (mặt 0.51): ngồi quay mặt ra hồ cá.
+                  [-16.6, -24.9, 1.04, 0.51],
+                  // Ghế đọc thư viện (mặt 0.50): lưng ghế ở phía
+                  // −Z nên mặt quay +Z — bản cũ quay 0 là đâm
+                  // mặt vào lưng ghế.
+                  [-22.6, -18.2, Math.PI, 0.5],
+                  // Ghế hộp quanh bàn ăn (mặt 0.50): điểm khớp
+                  // đúng một ghế thật, mặt hướng vào tâm bàn.
+                  [14.43, -23.95, -1.02, 0.5],
+                  // Ghế thư giãn khu giải trí (mặt 0.51): tấm
+                  // tựa ở phía +X nên mặt quay −X.
+                  [-11.6, -19.7, 1.57, 0.51],
                 ];
                 const spot = relaxSpots[rig.phase % relaxSpots.length] ?? relaxSpots[0];
                 const jx = ((rig.phase * 37 + id.length * 13) % 5 - 2) * 0.22;
@@ -7165,6 +7366,9 @@ export function Office3D({
                 targetRotY = spot?.[2] ?? 0;
                 targetSit = 1;
                 lean = 1;
+                // Hông theo ĐÚNG mặt ngồi của món nội thất tại
+                // điểm này, không còn một số chung cho mọi chỗ.
+                rig.hipGoal = hipFor(spot?.[3] ?? 0.53);
               } else if (restVariant === 2) {
                 tmpTarget.copy(rig.seat);
                 tmpTarget.x += 1.0;
@@ -7251,19 +7455,58 @@ export function Office3D({
             while (dr > Math.PI) dr -= Math.PI * 2;
             while (dr < -Math.PI) dr += Math.PI * 2;
             rig.group.rotation.y += dr * Math.min(1, dt * 6.5);
-            // Legs: seated thighs forward; walking legs swing in stride.
+            // TƯ THẾ NGỒI — CHUẨN NGHIỆM THU CỦA CHỦ TỊCH
+            // (audit toàn diện 2026-11-26): hông đặt TRÊN mặt
+            // ghế (hipGoal = mặt ghế thật của chỗ đang ngồi
+            // + 0.07, xem hipFor), thân tách khỏi ghế (đáy
+            // thân chỉ xuống dưới khớp hông 0.12 nên tỳ lên
+            // mặt ghế, không xuyên đệm), ĐÙI GẬP ở hông,
+            // CẲNG CHÂN THẢ THẲNG XUỐNG ở gối, BÀN CHÂN CHẠM
+            // SÀN. Góc đùi được GIẢI từ hình học thật: cẳng
+            // chân giữ thẳng đứng, giày đáp ở cao độ sàn
+            // 0.03, hông ở cao độ mặt ghế của chỗ đang ngồi
+            // (rig.hipGoal) → cos(góc đùi) = (hông − sàn −
+            // cẳng chân) / đùi. Áp cho MỌI chỗ ngồi: ghế bàn,
+            // ghế họp, sofa, ghế trà, ghế thư giãn, ghế đá —
+            // chỉ khác nhau ở hipGoal của từng chỗ. Hằng số
+            // chân KHỚP ĐÚNG mkLeg trong buildAvatar: khớp
+            // hông đứng 0.73, đùi 0.34, cẳng 0.36 — bản cũ
+            // (0.52 / 0.27 / 0.23) chân ngắn hơn chiều cao
+            // mặt ghế nên không tư thế đúng nào tồn tại.
+            const HIP_STAND = 0.73;
+            const THIGH_LEN = 0.34;
+            const SHIN_LEN = 0.36;
+            const SHOE_REST_Y = 0.03;
+            const hipY = HIP_STAND + (rig.hipGoal - HIP_STAND) * sit;
+            const thighCos = Math.min(
+              1,
+              Math.max(0.25, (hipY - SHOE_REST_Y - SHIN_LEN) / THIGH_LEN),
+            );
+            const thighAng = Math.acos(thighCos) * sit;
             if (walking) {
               const sw = Math.sin(rig.stride + phase) * 0.5 * (1 - sit);
-              rig.legL.rotation.x = 1.35 * sit + sw;
-              rig.legR.rotation.x = 1.35 * sit - sw;
+              rig.legL.rotation.x = thighAng + sw;
+              rig.legR.rotation.x = thighAng - sw;
+              // Gối gập theo nhịp bước: chân đang vung lên thì
+              // cẳng chân gập ra sau, chân trụ thì thẳng.
+              rig.shinL.rotation.x =
+                -thighAng - Math.max(0, Math.sin(rig.stride + phase)) * 0.55 * (1 - sit);
+              rig.shinR.rotation.x =
+                -thighAng - Math.max(0, -Math.sin(rig.stride + phase)) * 0.55 * (1 - sit);
             } else {
-              rig.legL.rotation.x = 1.35 * sit;
-              rig.legR.rotation.x = 1.35 * sit;
+              rig.legL.rotation.x = thighAng;
+              rig.legR.rotation.x = thighAng;
+              // Cẳng chân bù đúng góc đùi → luôn THẲNG ĐỨNG,
+              // giày nằm phẳng trên sàn.
+              rig.shinL.rotation.x = -thighAng;
+              rig.shinR.rotation.x = -thighAng;
             }
-            rig.legL.position.y = 0.52 - 0.3 * sit;
-            rig.legR.position.y = 0.52 - 0.3 * sit;
-            // Body height / lean: seated drop, walking bob, resting lean-back.
-            rig.bodyGroup.position.y = -0.3 * sit;
+            rig.legL.position.y = hipY;
+            rig.legR.position.y = hipY;
+            // Thân đi theo hông: ngồi xuống bao nhiêu thì thân
+            // hạ đúng bấy nhiêu — thân ngự TRÊN ghế (đáy thân
+            // tỳ mặt ghế theo tỉ lệ mới), không lún vào ghế.
+            rig.bodyGroup.position.y = hipY - HIP_STAND;
             if (walking) {
               rig.bodyGroup.position.y += Math.abs(Math.sin(rig.stride + phase)) * 0.04 * (1 - sit);
               rig.bodyGroup.rotation.x = 0.05;
@@ -7288,58 +7531,80 @@ export function Office3D({
               // Hands on the keyboard, eyes on the monitor — with a lived
               // rhythm: mostly typing, sometimes the mouse, sometimes a sip
               // of coffee, sometimes a stretch. Cycle differs per person.
+              // QUY ƯỚC DẤU GÓC TAY (Chủ tịch bắt lỗi 2026-11-26 "tay
+              // vắt ngược ra sau"): mặt nhân vật hướng −Z, trục vai
+              // xoay quanh X nên góc DƯƠNG mới đưa tay VỀ PHÍA TRƯỚC
+              // (về bàn / phím phía trước), góc ÂM vung tay RA SAU
+              // LƯNG — bản cũ dùng toàn góc âm nên ai ngồi cũng như
+              // khoanh tay ngược sau ghế. Mọi tư thế ngồi / đứng làm
+              // việc dưới đây đều dùng góc dương: gõ phím ≈1.12 rad
+              // để bàn tay đáp đúng mặt bàn phím thật — giải từ tỉ
+              // lệ mới: vai khi ngồi ở ~1.07, mặt phím ở 0.83, tay
+              // dài 0.48, phím ở trước ghế ~0.43–0.48.
               const cyc = (t + phase * 7) % 40;
               if (cyc > 37) {
-                rig.armL.rotation.x = -2.65 + Math.sin(t * 2 + phase) * 0.08;
-                rig.armR.rotation.x = -2.65 - Math.sin(t * 2 + phase) * 0.08;
+                // Vươn vai: hai tay giơ lên cao VỀ PHÍA TRƯỚC đầu,
+                // không quặt ra sau gáy như bản cũ.
+                rig.armL.rotation.x = 2.65 + Math.sin(t * 2 + phase) * 0.08;
+                rig.armR.rotation.x = 2.65 - Math.sin(t * 2 + phase) * 0.08;
                 rig.head.rotation.x = -0.16;
               } else if (cyc > 30) {
-                rig.armL.rotation.x = -1.02 + Math.sin(t * 6.5 + phase) * 0.09;
-                rig.armR.rotation.x = -2.1;
+                // Nhấp ngụm cà phê: tay phải nâng cốc lên TRƯỚC mặt,
+                // tay trái vẫn đặt trên phím.
+                rig.armL.rotation.x = 1.12 + Math.sin(t * 6.5 + phase) * 0.06;
+                rig.armR.rotation.x = 2.15;
                 rig.armR.rotation.z = -0.3;
                 rig.head.rotation.x = 0.02;
               } else if (cyc > 20 && cyc <= 22.5) {
-                rig.armL.rotation.x = -1.02 + Math.sin(t * 6.5 + phase) * 0.09;
-                rig.armR.rotation.x = -0.6 + Math.sin(t * 9 + phase) * 0.05;
-                rig.armR.rotation.z = -0.3;
+                // Tay phải rời phím sang CHUỘT: vẫn vươn về phía
+                // trước trên mặt bàn, hơi chếch ra ngoài phía chuột.
+                rig.armL.rotation.x = 1.12 + Math.sin(t * 6.5 + phase) * 0.06;
+                rig.armR.rotation.x = 1.1 + Math.sin(t * 9 + phase) * 0.04;
+                rig.armR.rotation.z = -0.25;
                 rig.head.rotation.x = 0.15;
               } else {
-                rig.armL.rotation.x = -1.02 + Math.sin(t * 6.5 + phase) * 0.09;
-                rig.armR.rotation.x = -1.02 + Math.sin(t * 6.5 + phase + 1.4) * 0.09;
+                // Gõ phím: cả hai tay vươn về phía trước, khuỷu xuôi
+                // tự nhiên xuống, bàn tay lơ lửng sát mặt bàn phím.
+                rig.armL.rotation.x = 1.12 + Math.sin(t * 6.5 + phase) * 0.06;
+                rig.armR.rotation.x = 1.12 + Math.sin(t * 6.5 + phase + 1.4) * 0.06;
                 rig.head.rotation.x = 0.14 + Math.sin(t * 6.5 + phase) * 0.02;
               }
             } else if (kind === "meeting") {
-              rig.armR.rotation.x = -0.55 + Math.sin(t * 1.9 + phase) * 0.28;
-              rig.armL.rotation.x = -0.15 + Math.sin(t * 1.3 + phase) * 0.06;
+              rig.armR.rotation.x = 0.55 + Math.sin(t * 1.9 + phase) * 0.28;
+              rig.armL.rotation.x = 0.15 + Math.sin(t * 1.3 + phase) * 0.06;
               rig.head.rotation.x = Math.sin(t * 2.3 + phase) * 0.07;
               rig.head.rotation.y = Math.sin(t * 0.7 + phase) * 0.2;
             } else if (kind === "reporting" || kind === "report-ceo" || kind === "a2a") {
-              // Standing at the desk, reporting / receiving: arms folded,
-              // attention on the person across the desk.
-              rig.armL.rotation.x = -0.5;
+              // Standing at the desk, reporting / receiving: hands clasped
+              // IN FRONT of the body, attention on the person across the
+              // desk — never folded behind the back.
+              rig.armL.rotation.x = 0.5;
               rig.armL.rotation.z = 0.45;
-              rig.armR.rotation.x = -0.5;
+              rig.armR.rotation.x = 0.5;
               rig.armR.rotation.z = -0.45;
               rig.head.rotation.x = 0.05 + Math.sin(t * 1.1 + phase) * 0.02;
             } else if (kind === "resting") {
               if (restVariant === 2) {
-                // Standing with a coffee: one hand holds the cup up.
+                // Standing with a coffee: one hand holds the cup up
+                // IN FRONT of the chest.
                 rig.armL.rotation.x = Math.sin(t * 1.4 + phase) * 0.05;
-                rig.armR.rotation.x = -1.85;
+                rig.armR.rotation.x = 1.85;
                 rig.armR.rotation.z = -0.25;
                 rig.head.rotation.x = 0.02;
                 rig.head.rotation.y = Math.sin(t * 0.45 + phase) * 0.3;
               } else {
-                // Leaning back / on the sofa, head nodding — the "Zzz" state.
-                rig.armL.rotation.x = -0.3;
-                rig.armR.rotation.x = -0.3;
+                // Leaning back / on the sofa, head nodding — the "Zzz"
+                // state; hands rest forward in the lap, not behind.
+                rig.armL.rotation.x = 0.3;
+                rig.armR.rotation.x = 0.3;
                 rig.head.rotation.x = 0.3 + Math.sin(t * 0.85 + phase) * 0.055;
               }
             } else if (sit > 0.8) {
-              // Seated and calm (idle / sắp mở): hands in lap, looking around
-              // slowly — present and waiting, never fake-typing.
-              rig.armL.rotation.x = -0.72;
-              rig.armR.rotation.x = -0.72;
+              // Seated and calm (idle / sắp mở): hands resting in the lap
+              // IN FRONT, looking around slowly — present and waiting,
+              // never fake-typing, never arms behind the chair.
+              rig.armL.rotation.x = 0.72;
+              rig.armR.rotation.x = 0.72;
               rig.head.rotation.x = 0.06;
               rig.head.rotation.y = Math.sin(t * 0.5 + phase) * 0.28;
             } else {
@@ -7357,9 +7622,11 @@ export function Office3D({
                 if (otherId !== id && other.pos.distanceTo(rig.pos) < 2.7) guestNear = true;
               });
               if (guestNear) {
-                rig.armR.rotation.x = -2.95;
+                // Vẫy chào: tay giơ cao VỀ PHÍA TRƯỚC (góc dương),
+                // tay trái đặt về phía trước trên bàn lễ tân.
+                rig.armR.rotation.x = 2.95;
                 rig.armR.rotation.z = -0.35 + Math.sin(t * 7.5) * 0.3;
-                rig.armL.rotation.x = -0.4;
+                rig.armL.rotation.x = 0.4;
                 rig.head.rotation.x = 0.02;
                 rig.head.rotation.y = Math.sin(t * 1.2) * 0.12;
               }

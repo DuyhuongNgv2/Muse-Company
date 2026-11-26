@@ -25,6 +25,11 @@ type PipelineStage = PipelineData["stages"][number];
 type JournalEntry = ApiResponse<typeof api, "listJournal">["entries"][number];
 type MeetingRow = ApiResponse<typeof api, "listMeetings">["meetings"][number];
 type ConsoleSettings = ApiResponse<typeof api, "getConsoleSettings">;
+type Decision = ApiResponse<typeof api, "listDecisions">["decisions"][number];
+type Proposal = ApiResponse<typeof api, "listProposals">["proposals"][number];
+type Veto = ApiResponse<typeof api, "listVetoes">["vetoes"][number];
+type Risk = ApiResponse<typeof api, "listRisks">["risks"][number];
+type Channel = ApiResponse<typeof api, "listChannels">["channels"][number];
 
 // ---------------------------------------------------------------------------
 // Cột phải sống + thanh chức năng (theo mẫu Phim Trường Drama AI mà Chủ
@@ -113,6 +118,7 @@ const lsSetNum = (k: string, v: number) => {
 
 type View =
   | "overview"
+  | "org"
   | "talk"
   | "board"
   | "assign"
@@ -186,6 +192,20 @@ const STAFF: StaffMember[] = [
   { id: "legal-nv2", name: "Hữu Thắng", role: "Nhân viên Pháp chế", roomId: "legal", color: "#607d8a", threeColor: 0x607d8a, gender: "Nam" },
   { id: "tp-hop", name: "Minh Châu", role: "Trưởng phòng Họp Lớn — quản lý lịch họp và biên bản", roomId: "meeting", color: "#8b5cf6", threeColor: 0x8b5cf6, gender: "Nữ" },
   { id: "hop-nv1", name: "Văn Toàn", role: "Nhân viên Phòng Họp Lớn — hỗ trợ họp và thiết bị", roomId: "meeting", color: "#65a30d", threeColor: 0x65a30d, gender: "Nam" },
+  // Tầng quản trị mới (cơ cấu tiệm cận / vượt WINHUB): các ghế này
+  // thuộc tầng sơ đồ tổ chức + quản trị — vị trí trong sơ đồ và
+  // khối báo cáo ghi ở tab Sơ đồ tổ chức; mặt bằng 3D 2 tầng giữ
+  // nguyên khóa, không phá hành lang.
+  { id: "kiem-toan", name: "Quang Minh", role: "Trưởng Kiểm toán nội bộ — ĐỘC LẬP, báo cáo thẳng Chủ tịch, không qua Tổng giám đốc", roomId: "kiem-toan", color: "#b91c1c", threeColor: 0xb91c1c, gender: "Nam" },
+  { id: "gd-chat-luong", name: "Bảo Ngọc", role: "Giám đốc Chất lượng toàn công ty — QC toàn công ty, bản quyền, duyệt mẫu, quyền VETO ghi mã lý do", roomId: "chat-luong", color: "#dc2626", threeColor: 0xdc2626, gender: "Nữ" },
+  { id: "tp-rd", name: "Anh Tuấn", role: "Trưởng phòng R&D — nghiên cứu định dạng, công cụ, mẫu mới; trực thuộc Tổng giám đốc", roomId: "rd", color: "#7c3aed", threeColor: 0x7c3aed, gender: "Nam" },
+  { id: "rd-nv1", name: "Thảo Nguyên", role: "Nhân viên R&D — thử nghiệm nhỏ, đo kết quả trước khi vào sản xuất", roomId: "rd", color: "#0d9488", threeColor: 0x0d9488, gender: "Nữ" },
+  { id: "rd-nv2", name: "Minh Đức", role: "Nhân viên R&D — làm mẫu thử, ghi chép thí nghiệm", roomId: "rd", color: "#b45309", threeColor: 0xb45309, gender: "Nam" },
+  { id: "tong-quan-nen-tang", name: "Phương Anh", role: "Tổng quản nền tảng — quản kênh YouTube / TikTok / Facebook, lịch đăng, mốc kiếm tiền", roomId: "nen-tang", color: "#059669", threeColor: 0x059669, gender: "Nữ" },
+  { id: "nen-tang-nv1", name: "Hoàng Anh", role: "Nhân viên Quản lý nền tảng — theo lịch đăng và số liệu từng kênh", roomId: "nen-tang", color: "#4d7c0f", threeColor: 0x4d7c0f, gender: "Nam" },
+  { id: "tp-cong-nghe", name: "Trí Đức", role: "Giám đốc Công nghệ / CTO — kỹ thuật, API, an toàn tài khoản; chờ kết nối local, chưa có model nào chạy", roomId: "cong-nghe", color: "#0369a1", threeColor: 0x0369a1, gender: "Nam" },
+  { id: "cong-nghe-nv1", name: "Thanh Sơn", role: "Nhân viên Công nghệ — kỹ thuật & hạ tầng (chờ local)", roomId: "cong-nghe", color: "#57534e", threeColor: 0x57534e, gender: "Nam" },
+  { id: "cong-nghe-nv2", name: "Mỹ Linh", role: "Nhân viên Công nghệ — API & an toàn tài khoản (chờ local)", roomId: "cong-nghe", color: "#be185d", threeColor: 0xbe185d, gender: "Nữ" },
 ];
 
 const staffById = (id: string): StaffMember =>
@@ -313,6 +333,11 @@ const ROOMS: { id: string; name: string; active: boolean }[] = [
   { id: "print", name: "Phòng In ấn", active: true },
   { id: "finance", name: "Phòng Tài chính – Kế toán", active: true },
   { id: "legal", name: "Phòng Pháp chế", active: true },
+  { id: "kiem-toan", name: "Phòng Kiểm toán nội bộ", active: true },
+  { id: "chat-luong", name: "Phòng Chất lượng toàn công ty", active: true },
+  { id: "rd", name: "Phòng R&D", active: true },
+  { id: "nen-tang", name: "Tổng quản nền tảng", active: true },
+  { id: "cong-nghe", name: "Phòng Công nghệ", active: true },
 ];
 
 const OFFICE_ROOMS: OfficeRoomDef[] = [
@@ -452,6 +477,94 @@ const OFFICE_ROOMS: OfficeRoomDef[] = [
   // nghỉ vào hai ô này.
   { id: "finance", name: "Tài chính – Kế toán", x: -23.0, z: -10.2, w: 7.8, d: 6.2, floor: 0x332a5e, staff: [{ id: "tp-tai-chinh", initials: "ĐT", color: 0x2e7d5b, name: "Đức Thịnh", gender: "Nam" }, { id: "finance-nv1", initials: "TH", color: 0xd4a017, name: "Thu Hiền", gender: "Nữ" }, { id: "finance-nv2", initials: "VP", color: 0x4a6fa5, name: "Văn Phong", gender: "Nam" }] },
   { id: "legal", name: "Pháp chế", x: 23.0, z: -10.2, w: 7.8, d: 6.2, floor: 0x332a5e, staff: [{ id: "tp-phap-che", initials: "ĐP", color: 0x5b4a8a, name: "Đình Phong", gender: "Nam" }, { id: "legal-nv1", initials: "MC", color: 0xc65b7c, name: "Mai Chi", gender: "Nữ" }, { id: "legal-nv2", initials: "HT", color: 0x607d8a, name: "Hữu Thắng", gender: "Nam" }] },
+];
+
+// ---------------------------------------------------------------------------
+// SƠ ĐỒ TỔ CHỨC MUSE COMPANY (Chủ tịch duyệt: lên sơ đồ trước, nối
+// vào văn phòng / pipeline sau — bản này nối cả hai): Chủ tịch
+// Hưởng → Kiểm toán nội bộ độc lập báo thẳng Chủ tịch; Tổng giám
+// đốc Muse điều hành, trình Chủ tịch; Văn phòng Chủ tịch (Thư ký
+// + Văn thư) giữ Sổ quyết định; Hội đồng cố vấn 5 người chỉ khuyến
+// nghị khi ≥3/5 đồng ý, có biên bản bỏ phiếu; R&D và Tổng quản nền
+// tảng trực thuộc Tổng giám đốc; 5 khối giám đốc báo thẳng Tổng
+// giám đốc. Chủ tịch chỉ có 2 điểm chạm: duyệt MỞ dự án và duyệt
+// FINAL — giữ nguyên như pipeline hiện tại.
+// ---------------------------------------------------------------------------
+
+interface OrgBlock {
+  key: string;
+  name: string;
+  directorId: string;
+  directorTitle: string;
+  rooms: string[];
+  note: string;
+}
+
+const ORG_BLOCKS: OrgBlock[] = [
+  {
+    key: "san-xuat",
+    name: "1 · Sản xuất",
+    directorId: "dao-dien",
+    directorTitle: "Giám đốc Sản xuất",
+    rooms: ["content", "video", "sound", "screening"],
+    note: "Nội dung · Video · Âm thanh · Chiếu — dây chuyền sản xuất chính, chạy qua kênh TASK.",
+  },
+  {
+    key: "chat-luong",
+    name: "2 · Chất lượng",
+    directorId: "gd-chat-luong",
+    directorTitle: "Giám đốc Chất lượng · VETO",
+    rooms: ["chat-luong", "legal"],
+    note: "QC toàn công ty · bản quyền & tuân thủ (Pháp chế) · hội đồng duyệt mẫu — quyền VETO bắt buộc ghi mã lý do, sửa xong mới qua.",
+  },
+  {
+    key: "phat-trien",
+    name: "3 · Phát triển",
+    directorId: "tp-chien-luoc",
+    directorTitle: "Giám đốc Phát triển",
+    rooms: ["strategy"],
+    note: "Chiến lược · dữ liệu & phân tích · cộng đồng & tương tác — do Phòng Chiến lược phụ trách cả ba mảng.",
+  },
+  {
+    key: "kinh-doanh",
+    name: "4 · Kinh doanh",
+    directorId: "tp-kinh-doanh",
+    directorTitle: "Giám đốc Kinh doanh",
+    rooms: ["sales", "marketing", "publish", "finance"],
+    note: "Kinh doanh · Marketing · Đăng tải & SEO · Tài chính – Kế toán.",
+  },
+  {
+    key: "cong-nghe",
+    name: "5 · Công nghệ",
+    directorId: "tp-cong-nghe",
+    directorTitle: "Giám đốc Công nghệ / CTO",
+    rooms: ["cong-nghe"],
+    note: "Kỹ thuật & hạ tầng · API · an toàn tài khoản — CHỜ KẾT NỐI LOCAL: chưa có model nào chạy, mục Model để trống cho tới khi local nối thật.",
+  },
+];
+
+/** Phòng ban thuộc khối nào (theo room id của việc) — dùng cho KPI từng khối. */
+const blockOfRoom = (roomId: string): OrgBlock | undefined =>
+  ORG_BLOCKS.find((b) => b.rooms.includes(roomId));
+
+/** 5 thành viên Hội đồng cố vấn — khuyến nghị chỉ thành khi ≥3/5 đồng ý. */
+const COUNCIL_MEMBERS: { staffId: string; seat: string }[] = [
+  { staffId: "tp-chien-luoc", seat: "Cố vấn Chiến lược" },
+  { staffId: "tp-phap-che", seat: "Cố vấn Pháp chế & bản quyền" },
+  { staffId: "tp-tai-chinh", seat: "Cố vấn Tài chính" },
+  { staffId: "gd-chat-luong", seat: "Cố vấn Chất lượng" },
+  { staffId: "tp-cong-nghe", seat: "Cố vấn Công nghệ" },
+];
+
+/** Mã lý do VETO chuẩn hoá — VETO không có mã thì không tính là VETO. */
+const VETO_CODES: { code: string; label: string }[] = [
+  { code: "BQ-01", label: "Bản quyền — nhạc / âm thanh chưa rõ quyền" },
+  { code: "BQ-02", label: "Bản quyền — hình ảnh / tư liệu chưa rõ quyền" },
+  { code: "CL-01", label: "Chất lượng — lỗi kỹ thuật hình / tiếng" },
+  { code: "CL-02", label: "Chất lượng — sai chuẩn mẫu / nhân vật / tỉ lệ" },
+  { code: "AT-01", label: "An toàn tài khoản — nguy cơ bị đánh dấu / hạn chế kênh" },
+  { code: "AT-02", label: "An toàn tài khoản — vi phạm chính sách nền tảng" },
+  { code: "KH-01", label: "Khác — ghi rõ lý do bên dưới" },
 ];
 
 const STATUS_META: Record<TaskStatus, { label: string; lamp: LampKind; badge: string }> = {
@@ -1847,6 +1960,12 @@ function Overview({
       if (!r.active) map[r.id] = "soon";
       else if (r.id === "video") map[r.id] = lampForTasks(tasks);
       else if (r.id === "ceo") map[r.id] = tasks.some((t) => t.status === "REVIEW") ? "review" : "idle";
+      // Đơn vị tầng quản trị (Kiểm toán, Chất lượng, R&D, Nền
+      // tảng, Công nghệ) KHÔNG có phòng 3D trên mặt bằng đã khóa
+      // và không nhận việc trên bảng việc: đèn luôn "chờ" — bản
+      // cũ cho chúng mượn đèn của mọi việc nên chip nào cũng đỏ
+      // "đang chạy" dù đơn vị không hề chạy việc gì.
+      else if (!OFFICE_ROOMS.some((o) => o.id === r.id)) map[r.id] = "idle";
       else map[r.id] = tasks.length > 0 ? lampForTasks(tasks) : "idle";
     }
     map["meeting"] = tasks.some((t) => t.status === "REVIEW") ? "review" : "idle";
@@ -1866,8 +1985,46 @@ function Overview({
         }
       }
     }
+    // KHỚP KHÂU ĐANG CHẠY (audit 2026-11-26): presenceFor chỉ nhìn
+    // trạng thái VIỆC (task) — việc dây chuyền giữ IN_PROGRESS suốt
+    // mọi khâu nên người của khâu đã xong vẫn hiện "đang làm", còn
+    // người của khâu ĐANG CHẠY (vd Trưởng phòng Âm thanh ở khâu
+    // Thu voice) lại hiện "thư giãn" vì việc không đứng tên mình.
+    // Phủ sự thật từ chính dữ liệu dây chuyền: khâu RUNNING → đúng
+    // người phụ trách khâu đó "working"; người phụ trách các khâu
+    // khác của CÙNG dự án mà không còn việc thật nào khác → hạ về
+    // "resting" (khâu của họ chưa tới lượt / đã xong). Chỉ áp trong
+    // giờ làm việc, không phá họp sáng / nghỉ trưa / ngoài giờ.
+    const pipe = pipeOverviewQ.data;
+    const inWorkPhase =
+      phaseInfo.phase === "morning" || phaseInfo.phase === "afternoon" || phaseInfo.phase === "wrap";
+    if (pipe && pipeTaskOverview && inWorkPhase && !phaseInfo.meetingNow) {
+      const runningStage = pipe.stages.find((s) => s.status === "RUNNING");
+      const pipeBusy =
+        pipe.pipeline_state === "RUNNING" || pipe.pipeline_state === "PAUSED" || pipe.pipeline_state === "SCREENING";
+      if (pipeBusy) {
+        const fixedRoles = new Set(["chu-tich", "van-thu", "thu-ky", "le-tan", "tro-ly", "dao-dien", "qc"]);
+        for (const st of pipe.stages) {
+          const who = st.assignee;
+          if (!who || fixedRoles.has(who) || !(who in map)) continue;
+          if (runningStage && st.stage_key === runningStage.stage_key) continue;
+          // Khâu của người này không phải khâu đang chạy: chỉ hạ
+          // khi họ không còn việc thật nào khác ngoài dự án này.
+          const otherWork = tasks.some(
+            (t) =>
+              t.id !== pipeTaskOverview.id &&
+              t.assignee === who &&
+              (t.status === "IN_PROGRESS" || t.status === "REVISION_REQUIRED" || t.status === "ASSIGNED"),
+          );
+          if (!otherWork && map[who] === "working") map[who] = "resting";
+        }
+        if (runningStage && runningStage.assignee in map) {
+          map[runningStage.assignee] = "working";
+        }
+      }
+    }
     return map;
-  }, [tasks, phaseInfo]);
+  }, [tasks, phaseInfo, pipeOverviewQ.data, pipeTaskOverview]);
 
   const [focusReq, setFocusReq] = useState<{ roomId: string; staffId?: string | null; nonce: number } | null>(null);
   const zoomToRoom = (roomId: string, staffId?: string | null) =>
@@ -2068,9 +2225,16 @@ function Overview({
         if (s.id === "dao-dien" && tasks.some((x) => x.status === "ASSIGNED")) {
           map[s.id] = "Đang giao việc…";
         } else {
+          // Người của khâu ĐANG CHẠY trong dây chuyền: bong bóng
+          // gọi đúng tên khâu + dự án (khớp presenceMap đã phủ
+          // theo khâu) thay vì tra việc đứng tên — việc dây
+          // chuyền không đứng tên từng khâu.
+          const runStage = pipeOverviewQ.data?.stages.find((x) => x.status === "RUNNING");
           const redo = tasks.find((x) => x.assignee === s.id && x.status === "REVISION_REQUIRED");
           const t = tasks.find((x) => x.assignee === s.id && x.status === "IN_PROGRESS");
-          if (redo) map[s.id] = `Đang sửa lại #${redo.id} theo QC`;
+          if (runStage && runStage.assignee === s.id && pipeOverviewQ.data) {
+            map[s.id] = `Đang chạy khâu "${runStage.name}" — dự án #${pipeOverviewQ.data.task_id}`;
+          } else if (redo) map[s.id] = `Đang sửa lại #${redo.id} theo QC`;
           else if (t) map[s.id] = `Đang làm #${t.id}: ${t.title.slice(0, 30)}`;
           else if (s.id === "dao-dien") map[s.id] = "Đang điều phối phòng";
           else if (s.id === "qc") map[s.id] = "Đang trực QC";
@@ -2080,7 +2244,7 @@ function Overview({
       }
     });
     return map;
-  }, [tasks, presenceMap, phaseInfo, hour]);
+  }, [tasks, presenceMap, phaseInfo, hour, pipeOverviewQ.data]);
 
   // Bong bóng ĐÃ XONG: CHỈ người vừa xong việc mới có — khâu dây
   // chuyền vừa Đạt QC trong 30 phút gần nhất (hoặc việc vừa được
@@ -2140,6 +2304,25 @@ function Overview({
     if (s.id === "tro-ly") return "Ngồi trong Phòng Tổng giám đốc — bàn thấp hơn, lệch sang phải, đối diện bàn họp dài — chạy việc cho Tổng giám đốc";
     if (s.id === "le-tan") return "Luôn trực tại bàn Lễ tân mở ở giữa sảnh — mặc đồng phục, đeo thẻ nhân viên, chào đón mọi người và trả lời chat, không rời bàn trong giờ làm việc";
     if (s.id === "tong-giam-doc") return "Chỉ chốt brief và duyệt kết quả cuối";
+    // Cùng một sự thật theo KHÂU như presenceMap (audit 2026-11-26):
+    // người phụ trách một khâu của dự án dây chuyền đang sống thì
+    // dòng mô tả gọi đúng khâu đó — bản cũ chỉ tra việc đứng tên
+    // nên Trưởng phòng Âm thanh hiện "Rảnh — sẵn sàng nhận cảnh
+    // mới" ngay dưới pill "Đang làm tại bàn" trong lúc khâu Thu
+    // voice của anh ta đang chạy.
+    const pipe = pipeOverviewQ.data;
+    if (pipe && pipeTaskOverview && pipe.pipeline_state !== "DONE" && pipe.pipeline_state !== "NONE") {
+      const myStage = pipe.stages.find((st) => st.assignee === s.id);
+      if (myStage) {
+        if (myStage.status === "RUNNING")
+          return `Đang chạy khâu "${myStage.name}" — dự án #${pipe.task_id}`;
+        if (myStage.status === "BLOCKED")
+          return `Khâu "${myStage.name}" đang kẹt — dự án #${pipe.task_id}, chờ Chủ tịch xử lý`;
+        if (myStage.status === "DONE")
+          return `Đã xong khâu "${myStage.name}" — dự án #${pipe.task_id}, chờ các khâu sau`;
+        return `Chờ tới lượt khâu "${myStage.name}" — dự án #${pipe.task_id}`;
+      }
+    }
     const mine = videoTasks.filter((t) => t.assignee === s.id);
     const doing = mine.find((t) => t.status === "IN_PROGRESS");
     if (doing) return `Đang bận — việc #${doing.id} "${doing.title}"`;
@@ -2170,9 +2353,10 @@ function Overview({
       }
     }
     return map;
-    // busyText is derived from tasks/videoTasks; recompute when tasks change.
+    // busyText is derived from tasks/videoTasks and the live
+    // pipeline's stage truth; recompute when either changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks]);
+  }, [tasks, pipeOverviewQ.data, pipeTaskOverview]);
 
   return (
     <div className="space-y-5">
@@ -2207,22 +2391,45 @@ function Overview({
             >
               Toàn cảnh
             </button>
-            {ROOMS.map((room) => (
-              <button
-                key={room.id}
-                type="button"
-                onClick={() => zoomToRoom(room.id)}
-                aria-label={`Bay camera tới ${room.name}`}
-                className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:border-[var(--accent)] hover:text-[var(--accent)]"
-              >
-                <span
-                  className="inline-block h-[7px] w-[7px] shrink-0 rounded-full"
-                  style={{ backgroundColor: roomDotColor(effectiveRoomLamp[room.id] ?? "idle") }}
-                  aria-hidden="true"
-                />
-                {room.name}
-              </button>
-            ))}
+            {ROOMS.map((room) =>
+              OFFICE_ROOMS.some((o) => o.id === room.id) ? (
+                <button
+                  key={room.id}
+                  type="button"
+                  onClick={() => zoomToRoom(room.id)}
+                  aria-label={`Bay camera tới ${room.name}`}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                >
+                  <span
+                    className="inline-block h-[7px] w-[7px] shrink-0 rounded-full"
+                    style={{ backgroundColor: roomDotColor(effectiveRoomLamp[room.id] ?? "idle") }}
+                    aria-hidden="true"
+                  />
+                  {room.name}
+                </button>
+              ) : (
+                // Phòng tầng quản trị không có phòng 3D trên mặt
+                // bằng đã khóa: bản cũ vẫn vẽ chip "Bay camera tới"
+                // nhưng bấm vào không bay đi đâu cả (Office3D
+                // không có phòng đó để đáp). Nay chip mở thẳng Sơ
+                // đồ tổ chức — đúng nơi đơn vị này sống — và viền
+                // đứt nét như chip khu tiện ích để phân biệt.
+                <button
+                  key={room.id}
+                  type="button"
+                  onClick={() => go("org")}
+                  aria-label={`Xem ${room.name} trong sơ đồ tổ chức (đơn vị tầng quản trị, không có phòng 3D)`}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-dashed border-[var(--border)] px-2.5 py-1 text-xs font-medium hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                >
+                  <span
+                    className="inline-block h-[7px] w-[7px] shrink-0 rounded-full"
+                    style={{ backgroundColor: roomDotColor(effectiveRoomLamp[room.id] ?? "idle") }}
+                    aria-hidden="true"
+                  />
+                  {room.name}
+                </button>
+              ),
+            )}
             {[
               { id: "zone-garden", name: "Khu vườn xanh" },
               { id: "zone-fun", name: "Khu giải trí" },
@@ -2407,14 +2614,25 @@ function Overview({
                     {room.active ? LAMP_LABELS[roomLamp[room.id] ?? "idle"] : "Sắp mở"}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => zoomToRoom(room.id)}
-                  aria-label={`Phóng to văn phòng 3D vào ${room.name}`}
-                  className="mt-1 min-h-8 text-xs font-semibold text-[var(--accent)]"
-                >
-                  Zoom 3D vào phòng này →
-                </button>
+                {OFFICE_ROOMS.some((r) => r.id === room.id) ? (
+                  <button
+                    type="button"
+                    onClick={() => zoomToRoom(room.id)}
+                    aria-label={`Phóng to văn phòng 3D vào ${room.name}`}
+                    className="mt-1 min-h-8 text-xs font-semibold text-[var(--accent)]"
+                  >
+                    Zoom 3D vào phòng này →
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => go("org")}
+                    aria-label={`Xem vị trí của ${room.name} trong sơ đồ tổ chức`}
+                    className="mt-1 min-h-8 text-xs font-semibold text-[var(--accent)]"
+                  >
+                    Đơn vị tầng quản trị — xem trong Sơ đồ tổ chức →
+                  </button>
+                )}
                 <ul className="mt-2 space-y-2.5">
                   {members.map((s) => (
                     <li key={s.id} className="flex items-start gap-2.5">
@@ -2422,7 +2640,7 @@ function Overview({
                       <div className="min-w-0 flex-1">
                         <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium leading-tight">
                           {s.name} · {s.gender} <LampDot kind={staffLamp[s.id] ?? "idle"} size={7} />
-                          <PresencePill presence={presenceFor(s.id, tasks)} />
+                          <PresencePill presence={presenceMap[s.id] ?? presenceFor(s.id, tasks)} />
                         </p>
                         <p className="text-xs text-[var(--dim)]">{s.role}</p>
                         <p className="text-xs text-[var(--dim)]">{busyText(s)}</p>
@@ -2489,6 +2707,31 @@ function Overview({
                   {room.id === "legal" ? (
                     <li className="text-xs text-[var(--dim)]">
                       Phòng lấp đúng ô trống ở đầu sau cột ngoài bên PHẢI theo chốt của Chủ tịch — kích thước 7.8 × 6.2 bằng các phòng ban khác: trưởng phòng và 2 nhân viên ngồi bàn làm việc, trong phòng có tủ hợp đồng dọc vách trái và bảng văn bản ở vách phải — lo pháp chế, hợp đồng, văn bản của công ty. Không phải phòng họp, không phải phòng nghỉ.
+                    </li>
+                  ) : null}
+                  {room.id === "kiem-toan" ? (
+                    <li className="text-xs text-[var(--dim)]">
+                      Đơn vị ĐỘC LẬP trong sơ đồ tổ chức: Kiểm toán nội bộ báo cáo thẳng Chủ tịch, không qua Tổng giám đốc — kiểm nhật ký làm việc, lượt QC, kho sản phẩm, Sổ quyết định và giữ bảng rủi ro cùng Khối Chất lượng. Thuộc tầng quản trị (tab Sơ đồ tổ chức), không chen vào mặt bằng 2 tầng đã khóa để khỏi phá hành lang.
+                    </li>
+                  ) : null}
+                  {room.id === "chat-luong" ? (
+                    <li className="text-xs text-[var(--dim)]">
+                      Khối Chất lượng toàn công ty: QC mọi khối (không chỉ Phòng Video), bản quyền & tuân thủ cùng Pháp chế, hội đồng duyệt mẫu — quyền VETO bắt buộc ghi mã lý do, phát và gỡ VETO ở tab Sơ đồ tổ chức. Ngọc Linh — QC ngồi tại Phòng Video nhưng nghiệp vụ thuộc khối này.
+                    </li>
+                  ) : null}
+                  {room.id === "rd" ? (
+                    <li className="text-xs text-[var(--dim)]">
+                      Phòng R&D trực thuộc Tổng giám đốc: nghiên cứu định dạng, công cụ và mẫu mới — vòng thử nghiệm nhỏ, đo kết quả thật rồi mới đề xuất đưa vào sản xuất qua Hội đồng cố vấn.
+                    </li>
+                  ) : null}
+                  {room.id === "nen-tang" ? (
+                    <li className="text-xs text-[var(--dim)]">
+                      Tổng quản nền tảng giữ sổ kênh YouTube / TikTok / Facebook, lịch đăng và mốc kiếm tiền — sổ kênh ở tab Sơ đồ tổ chức; số liệu chỉ ghi khi có kết nối thật, không bịa số.
+                    </li>
+                  ) : null}
+                  {room.id === "cong-nghe" ? (
+                    <li className="text-xs text-[var(--dim)]">
+                      Khối Công nghệ (CTO): kỹ thuật & hạ tầng, API, an toàn tài khoản — CHỜ KẾT NỐI LOCAL: chưa có model nào chạy, mục Model để trống cho tới khi máy local của Chủ tịch nối thật.
                     </li>
                   ) : null}
                 </ul>
@@ -5153,6 +5396,49 @@ function KpiView({ tasks }: { tasks: Task[] }) {
 
   return (
     <div className="space-y-4">
+      <section aria-label="KPI từng khối" className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+        <h2 className="font-display font-bold">KPI từng khối — 5 khối giám đốc báo thẳng Tổng giám đốc</h2>
+        <p className="mt-1 text-sm text-[var(--dim)]">
+          Tính từ việc thật trên kênh TASK theo phòng thuộc khối: tổng việc, tỉ lệ Đạt, số việc đang Làm lại
+          (gồm cả việc bị VETO đẩy về) và việc quá hạn chốt. Khối nào chưa có việc qua kênh TASK thì hiện 0 —
+          không ước lượng.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          {ORG_BLOCKS.map((b) => {
+            const mine = tasks.filter((t) => b.rooms.includes(t.room));
+            const approvedN = mine.filter((t) => t.status === "APPROVED").length;
+            const revisionN = mine.filter((t) => t.status === "REVISION_REQUIRED").length;
+            const overdue = mine.filter(
+              (t) => t.status !== "APPROVED" && Date.now() - new Date(t.created_at).getTime() > 3 * 86400000,
+            ).length;
+            const rate = mine.length > 0 ? Math.round((approvedN / mine.length) * 100) : null;
+            return (
+              <div key={b.key} className="rounded-[var(--radius)] bg-[var(--bg)] px-3 py-2">
+                <p className="font-display text-sm font-bold">{b.name}</p>
+                <p className="text-xs text-[var(--dim)]">{staffById(b.directorId).name} — {b.directorTitle}</p>
+                <dl className="mt-2 grid grid-cols-2 gap-1.5 text-sm">
+                  <div>
+                    <dt className="text-xs text-[var(--dim)]">Tổng việc</dt>
+                    <dd className="font-display text-lg font-bold">{mine.length}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[var(--dim)]">Tỉ lệ Đạt</dt>
+                    <dd className="font-display text-lg font-bold">{rate != null ? `${rate}%` : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[var(--dim)]">Đang làm lại</dt>
+                    <dd className="font-display text-lg font-bold">{revisionN}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[var(--dim)]">Quá 3 ngày chưa chốt</dt>
+                    <dd className={`font-display text-lg font-bold ${overdue > 0 ? "text-red-600" : ""}`}>{overdue}</dd>
+                  </div>
+                </dl>
+              </div>
+            );
+          })}
+        </div>
+      </section>
       <section aria-label="KPI Phòng Video" className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
         <h2 className="font-display font-bold">KPI Phòng Video (tính từ dữ liệu việc + QC đã lưu)</h2>
         <p className="mt-1 text-sm text-[var(--dim)]">
@@ -5248,6 +5534,13 @@ function KpiView({ tasks }: { tasks: Task[] }) {
 function ReportView({ tasks, products }: { tasks: Task[]; products: Product[] }) {
   const profiles = useQuery({ queryKey: ["profiles"], queryFn: () => api.listProfiles({}) });
   const profileRows: Profile[] = profiles.data?.profiles ?? [];
+  // Quản trị từ SỔ THẬT: quyết định đã ghi, VETO đang hiệu lực, rủi
+  // ro mức cao còn mở và kết quả bỏ phiếu của Hội đồng cố vấn — đọc
+  // thẳng từ các sổ quản trị, không gõ tay.
+  const govDecisions = useQuery({ queryKey: ["decisions"], queryFn: () => api.listDecisions({}) });
+  const govVetoes = useQuery({ queryKey: ["vetoes"], queryFn: () => api.listVetoes({}) });
+  const govRisks = useQuery({ queryKey: ["risks"], queryFn: () => api.listRisks({}) });
+  const govProposals = useQuery({ queryKey: ["proposals"], queryFn: () => api.listProposals({}) });
   // Báo cáo sáng TỰ ĐỘNG TỪ NHẬT KÝ THẬT: toàn bộ số liệu dưới đây
   // đếm từ các dòng nhật ký của ngày hôm qua (kiểm toán + báo cáo
   // khâu + biên bản) — không gõ tay, không ước lượng.
@@ -5343,6 +5636,66 @@ function ReportView({ tasks, products }: { tasks: Task[]; products: Product[] })
             ) : null}
           </>
         )}
+      </Block>
+      <Block title="Quản trị & rủi ro — từ sổ thật của công ty">
+        {(() => {
+          const decs = govDecisions.data?.decisions ?? [];
+          const vets = (govVetoes.data?.vetoes ?? []).filter((v) => v.active);
+          const highRisks = (govRisks.data?.risks ?? []).filter((r) => r.status !== "closed" && r.severity === "high");
+          const openRisks = (govRisks.data?.risks ?? []).filter((r) => r.status === "open");
+          const props = govProposals.data?.proposals ?? [];
+          const adopted = props.filter((p) => p.status === "ADOPTED");
+          const openProps = props.filter((p) => p.status === "OPEN");
+          if (decs.length === 0 && vets.length === 0 && highRisks.length === 0 && props.length === 0) {
+            return (
+              <p className="text-[var(--dim)]">
+                Sổ quyết định, sổ VETO, bảng rủi ro và biên bản Hội đồng cố vấn chưa có mục nào cần báo — quản
+                trị đang yên.
+              </p>
+            );
+          }
+          return (
+            <>
+              <p>
+                Sổ quyết định đã ghi <strong>{decs.length}</strong> quyết định · VETO đang hiệu lực:{" "}
+                <strong>{vets.length}</strong> · Rủi ro mức CAO còn mở: <strong>{highRisks.length}</strong> ·
+                Rủi ro đang mở: <strong>{openRisks.length}</strong> · Hội đồng cố vấn:{" "}
+                <strong>{adopted.length}</strong> khuyến nghị đã đạt 3/5, <strong>{openProps.length}</strong>{" "}
+                đề xuất đang bỏ phiếu.
+              </p>
+              {vets.length > 0 ? (
+                <>
+                  <p className="mt-2 font-semibold text-red-700">VETO đang chặn:</p>
+                  <ul className="list-inside list-disc space-y-1">
+                    {vets.slice(0, 5).map((v) => (
+                      <li key={v.id}>
+                        [{v.reason_code}] {v.target} — {v.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+              {highRisks.length > 0 ? (
+                <>
+                  <p className="mt-2 font-semibold text-red-700">Rủi ro CAO cần Chủ tịch biết:</p>
+                  <ul className="list-inside list-disc space-y-1">
+                    {highRisks.slice(0, 5).map((r) => (
+                      <li key={r.id}>
+                        [{RISK_CATEGORY_LABELS[r.category]}] {r.title}
+                        {r.owner ? ` — phụ trách: ${r.owner}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+              {decs.length > 0 ? (
+                <p className="mt-2">
+                  Quyết định mới nhất: {decs.slice(0, 3).map((d) => `"${d.title}"`).join(" · ")}
+                </p>
+              ) : null}
+            </>
+          );
+        })()}
       </Block>
       <Block title={`Việc đã xong (${done.length})`}>
         {done.length === 0 ? (
@@ -5547,8 +5900,819 @@ function AuditView() {
   );
 }
 
+const GOV_INPUT =
+  "min-h-10 w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-2 text-sm";
+const GOV_BTN =
+  "min-h-10 rounded-[var(--radius)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60";
+
+function DecisionsPanel() {
+  const queryClient = useQueryClient();
+  const q = useQuery({ queryKey: ["decisions"], queryFn: () => api.listDecisions({}) });
+  const rows: Decision[] = q.data?.decisions ?? [];
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [by, setBy] = useState<"chu-tich" | "tong-giam-doc">("chu-tich");
+  const [error, setError] = useState<string | null>(null);
+  const mut = useMutation({
+    mutationFn: async () =>
+      await api.addDecision({ title: title.trim(), body: body.trim(), decided_by: by, actor: "Văn thư" }),
+    onSuccess: () => {
+      setTitle("");
+      setBody("");
+      setError(null);
+      void queryClient.invalidateQueries({ queryKey: ["decisions"] });
+      void queryClient.invalidateQueries({ queryKey: ["audit"] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : String(e)),
+  });
+  const submit = () => {
+    if (!title.trim()) {
+      setError("Ghi tiêu đề quyết định trước khi lưu vào sổ.");
+      return;
+    }
+    mut.mutate();
+  };
+  return (
+    <section aria-label="Sổ quyết định" className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+      <h3 className="font-display font-bold">Sổ quyết định — Văn phòng Chủ tịch giữ sổ</h3>
+      <p className="mt-1 text-sm text-[var(--dim)]">
+        Mọi quyết định của Chủ tịch và Tổng giám đốc đều ghi vào sổ này qua Văn thư — truy lại được theo ngày,
+        không quyết miệng ngoài sổ.
+      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Tiêu đề quyết định *</span>
+          <input {...FIELDS.addDecision.title} value={title} onChange={(e) => setTitle(e.target.value)} className={GOV_INPUT} placeholder="vd: Chốt định dạng video tuần này…" />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Người quyết</span>
+          <select aria-label="Người quyết" value={by} onChange={(e) => setBy(e.target.value as typeof by)} className={GOV_INPUT}>
+            <option value="chu-tich">Chủ tịch Hưởng</option>
+            <option value="tong-giam-doc">Tổng giám đốc Muse</option>
+          </select>
+        </label>
+        <label className="block text-xs sm:col-span-2">
+          <span className="mb-1 block font-medium">Nội dung quyết định</span>
+          <textarea {...FIELDS.addDecision.body} value={body} onChange={(e) => setBody(e.target.value)} rows={2} className={GOV_INPUT} placeholder="Quyết gì, áp dụng từ khi nào, ai thực hiện…" />
+        </label>
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <button type="button" disabled={mut.isPending} onClick={submit} className={GOV_BTN}>
+          Ghi vào Sổ quyết định
+        </button>
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </div>
+      {q.isPending ? (
+        <p className="mt-3 text-sm text-[var(--dim)]">Đang mở sổ…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-3 text-sm text-[var(--dim)]">Sổ còn trống — chưa có quyết định nào được ghi.</p>
+      ) : (
+        <ol className="mt-3 space-y-2">
+          {rows.map((d) => (
+            <li key={d.id} className="rounded-[var(--radius)] bg-[var(--bg)] px-3 py-2 text-sm">
+              <p className="font-semibold">
+                {d.title}{" "}
+                <span className="ml-1 rounded-full bg-[#241b4d] px-2 py-0.5 text-xs font-bold text-white">
+                  {d.decided_by === "chu-tich" ? "Chủ tịch quyết" : "TGĐ quyết"}
+                </span>
+              </p>
+              {d.body ? <p className="mt-0.5">{d.body}</p> : null}
+              <p className="mt-0.5 text-xs text-[var(--dim)]">Ghi sổ {fmtTime(d.created_at)} · Văn thư giữ sổ</p>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+function ProposalCard({ p }: { p: Proposal }) {
+  const queryClient = useQueryClient();
+  const [member, setMember] = useState<string>(COUNCIL_MEMBERS[0]?.staffId ?? "");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const mut = useMutation({
+    mutationFn: async (vote: "YES" | "NO") =>
+      await api.castVote({
+        proposal_id: p.id,
+        member: member as "tp-chien-luoc" | "tp-phap-che" | "tp-tai-chinh" | "gd-chat-luong" | "tp-cong-nghe",
+        vote,
+        note: note.trim(),
+      }),
+    onSuccess: () => {
+      setNote("");
+      setError(null);
+      void queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      void queryClient.invalidateQueries({ queryKey: ["audit"] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : String(e)),
+  });
+  const statusBadge =
+    p.status === "ADOPTED"
+      ? "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-200"
+      : p.status === "REJECTED"
+        ? "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200"
+        : "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200";
+  const statusLabel =
+    p.status === "ADOPTED"
+      ? `ĐÃ THÀNH KHUYẾN NGHỊ (${p.yes}/5 đồng ý)`
+      : p.status === "REJECTED"
+        ? `KHÔNG ĐẠT (${p.no}/5 phản đối)`
+        : `Đang bỏ phiếu — ${p.yes} đồng ý · ${p.no} phản đối (cần 3/5)`;
+  return (
+    <li className="rounded-[var(--radius)] bg-[var(--bg)] px-3 py-2.5 text-sm">
+      <p className="flex flex-wrap items-center gap-2">
+        <span className="font-semibold">{p.title}</span>
+        <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${statusBadge}`}>{statusLabel}</span>
+      </p>
+      {p.detail ? <p className="mt-0.5">{p.detail}</p> : null}
+      <p className="mt-0.5 text-xs text-[var(--dim)]">
+        Đề xuất bởi {p.proposer || "—"} · mở {fmtTime(p.created_at)}
+        {p.closed_at ? ` · chốt biên bản ${fmtTime(p.closed_at)}` : ""}
+      </p>
+      <div className="mt-2" aria-label={`Thanh tỉ lệ phiếu đề xuất ${p.id}`}>
+        <div className="flex h-2.5 overflow-hidden rounded-full bg-[var(--border)]">
+          <div className="bg-green-500" style={{ width: `${(p.yes / 5) * 100}%` }} />
+          <div className="bg-red-500" style={{ width: `${(p.no / 5) * 100}%` }} />
+        </div>
+        <p className="mt-1 text-xs text-[var(--dim)]">Ngưỡng khuyến nghị: 3/5 đồng ý · mỗi thành viên 1 phiếu, đổi phiếu thì phiếu mới thay phiếu cũ trong biên bản.</p>
+      </div>
+      {p.votes.length > 0 ? (
+        <ul className="mt-2 space-y-1 border-t border-[var(--border)] pt-2">
+          {p.votes.map((v) => (
+            <li key={v.member} className="text-xs">
+              <strong>{staffById(v.member).name}</strong> ({COUNCIL_MEMBERS.find((m) => m.staffId === v.member)?.seat ?? ""}) —{" "}
+              {v.vote === "YES" ? "ĐỒNG Ý" : "PHẢN ĐỐI"}
+              {v.note ? `: ${v.note}` : ""} · {fmtTime(v.created_at)}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-xs text-[var(--dim)]">Biên bản bỏ phiếu: chưa có phiếu nào.</p>
+      )}
+      {p.status === "OPEN" ? (
+        <div className="mt-2 grid gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
+          <label className="block text-xs">
+            <span className="mb-1 block font-medium">Thành viên bỏ phiếu</span>
+            <select aria-label={`Thành viên bỏ phiếu cho đề xuất ${p.id}`} value={member} onChange={(e) => setMember(e.target.value)} className={GOV_INPUT}>
+              {COUNCIL_MEMBERS.map((m) => (
+                <option key={m.staffId} value={m.staffId}>
+                  {staffById(m.staffId).name} — {m.seat}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs">
+            <span className="mb-1 block font-medium">Ý kiến ghi biên bản</span>
+            <input {...FIELDS.castVote.note} aria-label={`Ý kiến biên bản đề xuất ${p.id}`} value={note} onChange={(e) => setNote(e.target.value)} className={GOV_INPUT} placeholder="Lý do đồng ý / phản đối…" />
+          </label>
+          <div className="flex items-end gap-2">
+            <button type="button" disabled={mut.isPending} onClick={() => mut.mutate("YES")} className="min-h-10 rounded-[var(--radius)] bg-green-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60">
+              Đồng ý
+            </button>
+            <button type="button" disabled={mut.isPending} onClick={() => mut.mutate("NO")} className="min-h-10 rounded-[var(--radius)] bg-red-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60">
+              Phản đối
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {error ? <p className="mt-1 text-sm text-red-600">{error}</p> : null}
+    </li>
+  );
+}
+
+function CouncilPanel() {
+  const queryClient = useQueryClient();
+  const q = useQuery({ queryKey: ["proposals"], queryFn: () => api.listProposals({}) });
+  const rows: Proposal[] = q.data?.proposals ?? [];
+  const [title, setTitle] = useState("");
+  const [detail, setDetail] = useState("");
+  const [proposer, setProposer] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const mut = useMutation({
+    mutationFn: async () =>
+      await api.createProposal({ title: title.trim(), detail: detail.trim(), proposer: proposer.trim() }),
+    onSuccess: () => {
+      setTitle("");
+      setDetail("");
+      setProposer("");
+      setError(null);
+      void queryClient.invalidateQueries({ queryKey: ["proposals"] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : String(e)),
+  });
+  const submit = () => {
+    if (!title.trim()) {
+      setError("Ghi tiêu đề đề xuất trước khi mở bỏ phiếu.");
+      return;
+    }
+    mut.mutate();
+  };
+  return (
+    <section aria-label="Hội đồng cố vấn" className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+      <h3 className="font-display font-bold">Hội đồng cố vấn — 5 người, khuyến nghị khi 3/5 đồng ý</h3>
+      <p className="mt-1 text-sm text-[var(--dim)]">
+        Hội đồng chỉ KHUYẾN NGHỊ — Chủ tịch và Tổng giám đốc quyết cuối. Mọi phiếu đều vào biên bản bỏ phiếu,
+        ai đồng ý ai phản đối truy lại được.
+      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Đề xuất *</span>
+          <input {...FIELDS.createProposal.title} value={title} onChange={(e) => setTitle(e.target.value)} className={GOV_INPUT} placeholder="vd: Thử định dạng Shorts mới…" />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Người đề xuất</span>
+          <input {...FIELDS.createProposal.proposer} value={proposer} onChange={(e) => setProposer(e.target.value)} className={GOV_INPUT} placeholder="vd: Trưởng phòng Chiến lược" />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Chi tiết</span>
+          <input {...FIELDS.createProposal.detail} value={detail} onChange={(e) => setDetail(e.target.value)} className={GOV_INPUT} placeholder="Căn cứ, rủi ro, kỳ vọng…" />
+        </label>
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <button type="button" disabled={mut.isPending} onClick={submit} className={GOV_BTN}>
+          Mở đề xuất bỏ phiếu
+        </button>
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </div>
+      {q.isPending ? (
+        <p className="mt-3 text-sm text-[var(--dim)]">Đang tải đề xuất…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-3 text-sm text-[var(--dim)]">Chưa có đề xuất nào — hội đồng chưa họp việc gì.</p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {rows.map((p) => (
+            <ProposalCard key={p.id} p={p} />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function VetoPanel({ tasks }: { tasks: Task[] }) {
+  const queryClient = useQueryClient();
+  const q = useQuery({ queryKey: ["vetoes"], queryFn: () => api.listVetoes({}) });
+  const rows: Veto[] = q.data?.vetoes ?? [];
+  const active = rows.filter((v) => v.active);
+  const [taskId, setTaskId] = useState<string>("");
+  const [target, setTarget] = useState("");
+  const [code, setCode] = useState<string>("CL-01");
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const mut = useMutation({
+    mutationFn: async () =>
+      await api.issueVeto({
+        task_id: taskId ? Number(taskId) : null,
+        target: target.trim(),
+        reason_code: code as "BQ-01" | "BQ-02" | "CL-01" | "CL-02" | "AT-01" | "AT-02" | "KH-01",
+        reason: reason.trim(),
+        actor: "GĐ Chất lượng",
+      }),
+    onSuccess: () => {
+      setTaskId("");
+      setTarget("");
+      setReason("");
+      setError(null);
+      void queryClient.invalidateQueries({ queryKey: ["vetoes"] });
+      void queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      void queryClient.invalidateQueries({ queryKey: ["audit"] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : String(e)),
+  });
+  const lift = useMutation({
+    mutationFn: async (id: number) => await api.liftVeto({ id, actor: "GĐ Chất lượng" }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["vetoes"] });
+      void queryClient.invalidateQueries({ queryKey: ["audit"] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : String(e)),
+  });
+  const submit = () => {
+    if (!reason.trim()) {
+      setError("VETO bắt buộc ghi lý do cụ thể — không chặn miệng.");
+      return;
+    }
+    if (!taskId && !target.trim()) {
+      setError("Chọn một việc hoặc ghi tên sản phẩm bị chặn.");
+      return;
+    }
+    mut.mutate();
+  };
+  return (
+    <section aria-label="Quyền VETO của Khối Chất lượng" className="rounded-[var(--radius)] border border-red-300 bg-[var(--surface)] px-4 py-3 dark:border-red-900">
+      <h3 className="font-display font-bold text-red-700 dark:text-red-300">Quyền VETO — Khối Chất lượng (đang hiệu lực: {active.length})</h3>
+      <p className="mt-1 text-sm text-[var(--dim)]">
+        VETO dừng ngay sản phẩm lỗi: việc bị VETO bị đẩy về Làm lại (dây chuyền đang chạy thì DỪNG kèm mã VETO),
+        bắt buộc ghi MÃ LÝ DO — sửa xong đúng mã đó, gỡ VETO rồi QC duyệt lại từ đầu mới qua được.
+      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Việc bị VETO (kênh TASK)</span>
+          <select aria-label="Việc bị VETO" value={taskId} onChange={(e) => setTaskId(e.target.value)} className={GOV_INPUT}>
+            <option value="">— Không gắn việc, ghi tay đối tượng bên cạnh —</option>
+            {tasks.map((t) => (
+              <option key={t.id} value={t.id}>
+                #{t.id} {t.title} ({STATUS_META[t.status].label})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Đối tượng (khi không gắn việc)</span>
+          <input {...FIELDS.issueVeto.target} value={target} onChange={(e) => setTarget(e.target.value)} className={GOV_INPUT} placeholder="vd: Bản mẫu tập 03…" />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Mã lý do *</span>
+          <select aria-label="Mã lý do VETO" value={code} onChange={(e) => setCode(e.target.value)} className={GOV_INPUT}>
+            {VETO_CODES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code} — {c.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Lý do cụ thể *</span>
+          <input {...FIELDS.issueVeto.reason} value={reason} onChange={(e) => setReason(e.target.value)} className={GOV_INPUT} placeholder="Lỗi ở đâu, sửa thế nào mới hết…" />
+        </label>
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <button type="button" disabled={mut.isPending} onClick={submit} className="min-h-10 rounded-[var(--radius)] bg-red-600 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60">
+          Phát VETO
+        </button>
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </div>
+      {q.isPending ? (
+        <p className="mt-3 text-sm text-[var(--dim)]">Đang tải sổ VETO…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-3 text-sm text-[var(--dim)]">Chưa có lệnh VETO nào — chất lượng đang thông suốt.</p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {rows.map((v) => (
+            <li key={v.id} className="rounded-[var(--radius)] bg-[var(--bg)] px-3 py-2 text-sm">
+              <p className="flex flex-wrap items-center gap-2">
+                <span className="rounded bg-red-600 px-1.5 py-0.5 text-xs font-bold text-white">VETO {v.reason_code}</span>
+                <span className="font-semibold">{v.target}</span>
+                {v.active ? (
+                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-900 dark:bg-red-950 dark:text-red-200">ĐANG CHẶN</span>
+                ) : (
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-900 dark:bg-green-950 dark:text-green-200">
+                    Đã gỡ {v.lifted_at ? fmtTime(v.lifted_at) : ""} bởi {v.lifted_by}
+                  </span>
+                )}
+              </p>
+              <p className="mt-0.5">{v.reason}</p>
+              <p className="mt-0.5 text-xs text-[var(--dim)]">
+                {VETO_CODES.find((c) => c.code === v.reason_code)?.label ?? ""} · phát bởi GĐ Chất lượng · {fmtTime(v.created_at)}
+              </p>
+              {v.active ? (
+                <button
+                  type="button"
+                  disabled={lift.isPending}
+                  onClick={() => lift.mutate(v.id)}
+                  aria-label={`Gỡ VETO ${v.reason_code} cho ${v.target}`}
+                  className="mt-1.5 min-h-9 rounded-[var(--radius)] border border-green-600 px-3 py-1 text-sm font-medium text-green-700 disabled:opacity-60 dark:text-green-300"
+                >
+                  Đã sửa xong — gỡ VETO
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+const RISK_CATEGORY_LABELS: Record<Risk["category"], string> = {
+  copyright: "Bản quyền",
+  account: "An toàn tài khoản",
+  platform: "Chính sách nền tảng",
+  other: "Khác",
+};
+const RISK_SEVERITY_LABELS: Record<Risk["severity"], string> = {
+  low: "Thấp",
+  medium: "Trung bình",
+  high: "CAO",
+};
+const RISK_STATUS_LABELS: Record<Risk["status"], string> = {
+  open: "Đang mở",
+  monitoring: "Đang theo dõi",
+  closed: "Đã đóng",
+};
+
+function RiskPanel() {
+  const queryClient = useQueryClient();
+  const q = useQuery({ queryKey: ["risks"], queryFn: () => api.listRisks({}) });
+  const rows: Risk[] = q.data?.risks ?? [];
+  const openHigh = rows.filter((r) => r.status !== "closed" && r.severity === "high");
+  const [category, setCategory] = useState<Risk["category"]>("copyright");
+  const [severity, setSeverity] = useState<Risk["severity"]>("medium");
+  const [title, setTitle] = useState("");
+  const [detail, setDetail] = useState("");
+  const [owner, setOwner] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const mut = useMutation({
+    mutationFn: async () =>
+      await api.addRisk({ category, severity, title: title.trim(), detail: detail.trim(), owner: owner.trim(), actor: "Kiểm toán" }),
+    onSuccess: () => {
+      setTitle("");
+      setDetail("");
+      setOwner("");
+      setError(null);
+      void queryClient.invalidateQueries({ queryKey: ["risks"] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : String(e)),
+  });
+  const setStatus = useMutation({
+    mutationFn: async (args: { id: number; status: Risk["status"] }) =>
+      await api.setRiskStatus({ id: args.id, status: args.status, actor: "Kiểm toán" }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["risks"] }),
+    onError: (e) => setError(e instanceof Error ? e.message : String(e)),
+  });
+  const submit = () => {
+    if (!title.trim()) {
+      setError("Ghi tên rủi ro trước khi đưa lên bảng.");
+      return;
+    }
+    mut.mutate();
+  };
+  return (
+    <section aria-label="Bảng rủi ro" className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+      <h3 className="font-display font-bold">Bảng rủi ro — bản quyền & an toàn tài khoản</h3>
+      <p className="mt-1 text-sm text-[var(--dim)]">
+        Kiểm toán nội bộ và Khối Chất lượng cùng giữ bảng này. Rủi ro mức CAO còn mở sẽ nổi đỏ lên Báo cáo sáng
+        trình Chủ tịch.
+        {openHigh.length > 0 ? <strong className="text-red-600"> Hiện có {openHigh.length} rủi ro CAO đang mở.</strong> : null}
+      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Loại rủi ro</span>
+          <select aria-label="Loại rủi ro" value={category} onChange={(e) => setCategory(e.target.value as Risk["category"])} className={GOV_INPUT}>
+            {Object.entries(RISK_CATEGORY_LABELS).map(([k, label]) => (
+              <option key={k} value={k}>{label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Mức độ</span>
+          <select aria-label="Mức độ rủi ro" value={severity} onChange={(e) => setSeverity(e.target.value as Risk["severity"])} className={GOV_INPUT}>
+            {Object.entries(RISK_SEVERITY_LABELS).map(([k, label]) => (
+              <option key={k} value={k}>{label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Tên rủi ro *</span>
+          <input {...FIELDS.addRisk.title} value={title} onChange={(e) => setTitle(e.target.value)} className={GOV_INPUT} placeholder="vd: Nhạc nền tập mới chưa rõ quyền…" />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Người phụ trách xử lý</span>
+          <input {...FIELDS.addRisk.owner} value={owner} onChange={(e) => setOwner(e.target.value)} className={GOV_INPUT} placeholder="vd: Pháp chế / CTO" />
+        </label>
+        <label className="block text-xs sm:col-span-2 lg:col-span-4">
+          <span className="mb-1 block font-medium">Chi tiết & cách xử lý</span>
+          <input {...FIELDS.addRisk.detail} value={detail} onChange={(e) => setDetail(e.target.value)} className={GOV_INPUT} placeholder="Nguy cơ ở đâu, đang xử lý thế nào…" />
+        </label>
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <button type="button" disabled={mut.isPending} onClick={submit} className={GOV_BTN}>
+          Đưa lên bảng rủi ro
+        </button>
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </div>
+      {q.isPending ? (
+        <p className="mt-3 text-sm text-[var(--dim)]">Đang tải bảng rủi ro…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-3 text-sm text-[var(--dim)]">Bảng rủi ro đang trống — chưa ghi nhận rủi ro nào.</p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {rows.map((r) => (
+            <li key={r.id} className="flex flex-wrap items-start gap-2 rounded-[var(--radius)] bg-[var(--bg)] px-3 py-2 text-sm">
+              <div className="min-w-0 flex-1">
+                <p className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${r.severity === "high" ? "bg-red-600 text-white" : r.severity === "medium" ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200" : "bg-[var(--border)]"}`}>
+                    {RISK_SEVERITY_LABELS[r.severity]}
+                  </span>
+                  <span className="font-semibold">{r.title}</span>
+                  <span className="text-xs text-[var(--dim)]">{RISK_CATEGORY_LABELS[r.category]}{r.owner ? ` · phụ trách: ${r.owner}` : ""}</span>
+                </p>
+                {r.detail ? <p className="mt-0.5">{r.detail}</p> : null}
+                <p className="text-xs text-[var(--dim)]">Ghi {fmtTime(r.created_at)} · cập nhật {fmtTime(r.updated_at)}</p>
+              </div>
+              <label className="block text-xs">
+                <span className="sr-only">Trạng thái rủi ro {r.title}</span>
+                <select
+                  aria-label={`Trạng thái rủi ro ${r.title}`}
+                  value={r.status}
+                  disabled={setStatus.isPending}
+                  onChange={(e) => setStatus.mutate({ id: r.id, status: e.target.value as Risk["status"] })}
+                  className="min-h-9 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-2 text-sm"
+                >
+                  {Object.entries(RISK_STATUS_LABELS).map(([k, label]) => (
+                    <option key={k} value={k}>{label}</option>
+                  ))}
+                </select>
+              </label>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+const PLATFORM_LABELS: Record<Channel["platform"], string> = {
+  youtube: "YouTube",
+  tiktok: "TikTok",
+  facebook: "Facebook",
+};
+const CHANNEL_STATUS_LABELS: Record<Channel["status"], string> = {
+  active: "Đang hoạt động",
+  paused: "Tạm dừng",
+  risk: "Có rủi ro — cần xử lý",
+};
+
+function ChannelsPanel() {
+  const queryClient = useQueryClient();
+  const q = useQuery({ queryKey: ["channels"], queryFn: () => api.listChannels({}) });
+  const rows: Channel[] = q.data?.channels ?? [];
+  const [platform, setPlatform] = useState<Channel["platform"]>("youtube");
+  const [name, setName] = useState("");
+  const [handle, setHandle] = useState("");
+  const [status, setStatus] = useState<Channel["status"]>("active");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const mut = useMutation({
+    mutationFn: async () =>
+      await api.upsertChannel({ id: null, platform, name: name.trim(), handle: handle.trim(), status, note: note.trim(), actor: "Tổng quản nền tảng" }),
+    onSuccess: () => {
+      setName("");
+      setHandle("");
+      setNote("");
+      setError(null);
+      void queryClient.invalidateQueries({ queryKey: ["channels"] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : String(e)),
+  });
+  const del = useMutation({
+    mutationFn: async (id: number) => await api.deleteChannel({ id, actor: "Tổng quản nền tảng" }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["channels"] }),
+    onError: (e) => setError(e instanceof Error ? e.message : String(e)),
+  });
+  const submit = () => {
+    if (!name.trim()) {
+      setError("Ghi tên kênh trước khi lưu vào sổ nền tảng.");
+      return;
+    }
+    mut.mutate();
+  };
+  return (
+    <section aria-label="Tổng quản nền tảng" className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+      <h3 className="font-display font-bold">Tổng quản nền tảng — sổ kênh YouTube / TikTok / Facebook</h3>
+      <p className="mt-1 text-sm text-[var(--dim)]">
+        Tổng quản nền tảng giữ sổ kênh, lịch đăng và mốc kiếm tiền của từng kênh. Sổ này chỉ ghi kênh thật do
+        công ty quản; số liệu lượt xem / doanh thu chỉ hiện khi có kết nối thật — chưa kết nối thì để trống,
+        không bịa số.
+      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Nền tảng</span>
+          <select aria-label="Nền tảng của kênh" value={platform} onChange={(e) => setPlatform(e.target.value as Channel["platform"])} className={GOV_INPUT}>
+            {Object.entries(PLATFORM_LABELS).map(([k, label]) => (
+              <option key={k} value={k}>{label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Tên kênh *</span>
+          <input {...FIELDS.upsertChannel.name} value={name} onChange={(e) => setName(e.target.value)} className={GOV_INPUT} placeholder="Tên kênh thật…" />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Handle / đường dẫn</span>
+          <input {...FIELDS.upsertChannel.handle} value={handle} onChange={(e) => setHandle(e.target.value)} className={GOV_INPUT} placeholder="@kenh…" />
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Trạng thái</span>
+          <select aria-label="Trạng thái kênh" value={status} onChange={(e) => setStatus(e.target.value as Channel["status"])} className={GOV_INPUT}>
+            {Object.entries(CHANNEL_STATUS_LABELS).map(([k, label]) => (
+              <option key={k} value={k}>{label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs">
+          <span className="mb-1 block font-medium">Ghi chú (lịch đăng, mốc kiếm tiền…)</span>
+          <input {...FIELDS.upsertChannel.note} value={note} onChange={(e) => setNote(e.target.value)} className={GOV_INPUT} placeholder="vd: Đăng 1 video/ngày…" />
+        </label>
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <button type="button" disabled={mut.isPending} onClick={submit} className={GOV_BTN}>
+          Thêm kênh vào sổ
+        </button>
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      </div>
+      {q.isPending ? (
+        <p className="mt-3 text-sm text-[var(--dim)]">Đang mở sổ kênh…</p>
+      ) : rows.length === 0 ? (
+        <p className="mt-3 text-sm text-[var(--dim)]">Sổ kênh đang trống — Tổng quản nền tảng chưa ghi kênh nào. Thêm kênh thật của công ty vào đây để theo dõi.</p>
+      ) : (
+        (Object.keys(PLATFORM_LABELS) as Channel["platform"][]).map((pf) => {
+          const list = rows.filter((c) => c.platform === pf);
+          if (list.length === 0) return null;
+          return (
+            <div key={pf} className="mt-3">
+              <h4 className="font-display text-sm font-bold">{PLATFORM_LABELS[pf]} ({list.length} kênh)</h4>
+              <ul className="mt-1.5 space-y-1.5">
+                {list.map((c) => (
+                  <li key={c.id} className="flex flex-wrap items-center gap-2 rounded-[var(--radius)] bg-[var(--bg)] px-3 py-2 text-sm">
+                    <span className="font-semibold">{c.name}</span>
+                    {c.handle ? <span className="text-[var(--dim)]">{c.handle}</span> : null}
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${c.status === "risk" ? "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200" : c.status === "paused" ? "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200" : "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-200"}`}>
+                      {CHANNEL_STATUS_LABELS[c.status]}
+                    </span>
+                    {c.note ? <span className="text-[var(--dim)]">{c.note}</span> : null}
+                    <button
+                      type="button"
+                      disabled={del.isPending}
+                      onClick={() => del.mutate(c.id)}
+                      aria-label={`Xóa kênh ${c.name} khỏi sổ`}
+                      className="ml-auto min-h-8 px-2 text-xs font-semibold text-red-600 disabled:opacity-60"
+                    >
+                      Xóa
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })
+      )}
+    </section>
+  );
+}
+
+function OrgView({ tasks, go }: { tasks: Task[]; go: (v: View) => void }) {
+  const vetoQ = useQuery({ queryKey: ["vetoes"], queryFn: () => api.listVetoes({}) });
+  const activeVetoes = (vetoQ.data?.vetoes ?? []).filter((v) => v.active).length;
+  const blockStats = (b: OrgBlock) => {
+    const mine = tasks.filter((t) => b.rooms.includes(t.room));
+    return {
+      total: mine.length,
+      approved: mine.filter((t) => t.status === "APPROVED").length,
+      revision: mine.filter((t) => t.status === "REVISION_REQUIRED").length,
+      open: mine.filter((t) => t.status !== "APPROVED").length,
+    };
+  };
+  const personCard = (staffId: string, title: string, note?: string) => {
+    const s = staffById(staffId);
+    return (
+      <div className="rounded-[var(--radius)] bg-[var(--bg)] px-3 py-2">
+        <p className="flex items-center gap-2 text-sm">
+          <Avatar member={s} size={30} />
+          <span>
+            <strong>{s.name}</strong> · <span className="text-[var(--dim)]">{title}</span>
+          </span>
+        </p>
+        <p className="mt-1 text-xs text-[var(--dim)]">{note ?? s.role}</p>
+      </div>
+    );
+  };
+  return (
+    <div className="space-y-4">
+      <section aria-label="Sơ đồ tổ chức MUSE COMPANY" className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+        <h2 className="font-display text-lg font-bold">Sơ đồ tổ chức — MUSE COMPANY</h2>
+        <p className="mt-1 text-sm text-[var(--dim)]">
+          Cơ cấu đã nâng tiệm cận và vượt mô hình tập đoàn tham chiếu: thêm kiểm toán độc lập, cố vấn bỏ phiếu
+          3/5 có biên bản, VETO ghi mã lý do, bảng rủi ro và KPI từng khối. Kênh giao việc chính thức là kênh{" "}
+          <strong>TASK</strong> (Bảng việc + Giao việc) — giao việc, báo cáo, duyệt đều qua TASK, không giao
+          miệng ngoài sổ. Chủ tịch chỉ có <strong>2 điểm chạm</strong>: duyệt MỞ dự án và duyệt FINAL.
+        </p>
+        <div className="mx-auto mt-4 max-w-md rounded-[var(--radius)] bg-[#241b4d] px-4 py-3 text-center text-white">
+          <p className="font-display text-lg font-bold">CHỦ TỊCH — HƯỞNG</p>
+          <p className="text-xs text-[#c9bdf5]">Đầu tư · Định hướng · Quyết định quan trọng — chỉ duyệt mở dự án & duyệt Final</p>
+        </div>
+        <div className="mx-auto h-4 w-px bg-[var(--border)]" aria-hidden="true" />
+        <div className="grid gap-3 lg:grid-cols-3">
+          <div className="rounded-[var(--radius)] border-2 border-red-300 px-3 py-2.5 dark:border-red-900">
+            <h3 className="font-display font-bold text-red-700 dark:text-red-300">KIỂM TOÁN NỘI BỘ — ĐỘC LẬP</h3>
+            <p className="mb-2 text-xs text-[var(--dim)]">Báo cáo THẲNG Chủ tịch, không qua Tổng giám đốc — kiểm nhật ký, QC, kho sản phẩm, Sổ quyết định và bảng rủi ro.</p>
+            {personCard("kiem-toan", "Trưởng Kiểm toán nội bộ")}
+          </div>
+          <div className="rounded-[var(--radius)] border-2 border-[var(--accent)] px-3 py-2.5">
+            <h3 className="font-display font-bold">TỔNG GIÁM ĐỐC — MUSE</h3>
+            <p className="mb-2 text-xs text-[var(--dim)]">Điều hành toàn công ty · Trình Chủ tịch — điều phối dây chuyền qua kênh TASK, maker ≠ approver.</p>
+            {personCard("tong-giam-doc", "Tổng giám đốc")}
+            <div className="mt-2">{personCard("tro-ly", "Trợ lý Tổng giám đốc")}</div>
+          </div>
+          <div className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2.5">
+            <h3 className="font-display font-bold">VĂN PHÒNG CHỦ TỊCH</h3>
+            <p className="mb-2 text-xs text-[var(--dim)]">Giữ Sổ quyết định · hồ sơ trình ký · biên bản hội đồng.</p>
+            {personCard("thu-ky", "Thư ký Chủ tịch")}
+            <div className="mt-2">{personCard("van-thu", "Văn thư — giữ Sổ quyết định")}</div>
+          </div>
+        </div>
+        <div className="mx-auto h-4 w-px bg-[var(--border)]" aria-hidden="true" />
+        <div className="grid gap-3 lg:grid-cols-3">
+          <div className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2.5">
+            <h3 className="font-display font-bold">HỘI ĐỒNG CỐ VẤN QUYẾT SÁCH</h3>
+            <p className="mb-2 text-xs text-[var(--dim)]">5 cố vấn · chỉ KHUYẾN NGHỊ khi ≥3/5 đồng ý · biên bản bỏ phiếu ở panel dưới.</p>
+            <ul className="space-y-1.5">
+              {COUNCIL_MEMBERS.map((m) => (
+                <li key={m.staffId}>{personCard(m.staffId, m.seat)}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2.5">
+            <h3 className="font-display font-bold">PHÒNG R&D</h3>
+            <p className="mb-2 text-xs text-[var(--dim)]">Nghiên cứu & Phát triển · Trực thuộc Tổng giám đốc — thử nghiệm nhỏ, đo kết quả rồi mới đưa vào sản xuất.</p>
+            {personCard("tp-rd", "Trưởng phòng R&D")}
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {personCard("rd-nv1", "Nhân viên R&D")}
+              {personCard("rd-nv2", "Nhân viên R&D")}
+            </div>
+          </div>
+          <div className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2.5">
+            <h3 className="font-display font-bold">TỔNG QUẢN NỀN TẢNG</h3>
+            <p className="mb-2 text-xs text-[var(--dim)]">YouTube · TikTok · Facebook — giữ sổ kênh, lịch đăng, mốc kiếm tiền ở panel dưới.</p>
+            {personCard("tong-quan-nen-tang", "Tổng quản nền tảng")}
+            <div className="mt-2">{personCard("nen-tang-nv1", "Nhân viên Quản lý nền tảng")}</div>
+          </div>
+        </div>
+        <h3 className="font-display mt-5 font-bold">5 KHỐI CHỨC NĂNG — GIÁM ĐỐC BÁO CÁO THẲNG TỔNG GIÁM ĐỐC</h3>
+        <div className="mt-2 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {ORG_BLOCKS.map((b) => {
+            const st = blockStats(b);
+            const director = staffById(b.directorId);
+            return (
+              <div key={b.key} className="rounded-[var(--radius)] border border-[var(--border)] px-3 py-2.5">
+                <h4 className="font-display font-bold">{b.name}</h4>
+                <p className="mt-1 flex items-center gap-2 text-sm">
+                  <Avatar member={director} size={28} />
+                  <span>
+                    <strong>{director.name}</strong> · {b.directorTitle}
+                  </span>
+                </p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {b.rooms.map((rid) => {
+                    const room = ROOMS.find((r) => r.id === rid);
+                    const members = STAFF.filter((s) => s.roomId === rid);
+                    return (
+                      <li key={rid} className="rounded bg-[var(--bg)] px-2 py-1.5">
+                        <span className="font-medium">{room?.name ?? rid}</span>
+                        <span className="block text-xs text-[var(--dim)]">
+                          {members.length > 0 ? members.map((m) => m.name).join(" · ") : "Đội hình theo phòng"}
+                          {rid === "chat-luong" ? " · Ngọc Linh — QC (ngồi Phòng Video, thuộc Khối Chất lượng)" : ""}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mt-2 text-xs text-[var(--dim)]">{b.note}</p>
+                <p className="mt-1 text-xs font-medium">
+                  KPI khối (từ kênh TASK): {st.total} việc · {st.approved} đã đạt · {st.revision} đang làm lại · {st.open} chưa chốt
+                  {b.key === "chat-luong" ? ` · ${activeVetoes} VETO đang hiệu lực` : ""}
+                </p>
+              </div>
+            );
+          })}
+          <div className="rounded-[var(--radius)] border border-dashed border-[var(--border)] px-3 py-2.5">
+            <h4 className="font-display font-bold">Kênh TASK chính thức</h4>
+            <p className="mt-1 text-sm text-[var(--dim)]">
+              Mọi giao việc, báo cáo khâu, duyệt mẫu và QC đi qua kênh TASK — việc nào cũng có brief, khóa nhân
+              vật, người phụ trách và lịch sử duyệt truy lại được.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" onClick={() => go("board")} className="min-h-10 rounded-[var(--radius)] bg-[var(--accent)] px-3 py-1.5 text-sm font-medium text-white">
+                Mở Bảng việc (TASK)
+              </button>
+              <button type="button" onClick={() => go("assign")} className="min-h-10 rounded-[var(--radius)] border border-[var(--accent)] px-3 py-1.5 text-sm font-medium text-[var(--accent)]">
+                Giao việc mới
+              </button>
+              <button type="button" onClick={() => go("kpi")} className="min-h-10 rounded-[var(--radius)] border border-[var(--border)] px-3 py-1.5 text-sm font-medium">
+                KPI từng khối →
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-[var(--dim)]">
+              Phòng ban hỗ trợ ngoài 5 khối: Lễ tân · Nhân sự · Kho Sản phẩm · In ấn · Phòng Họp Lớn — vẫn thuộc
+              điều hành chung của Tổng giám đốc.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <DecisionsPanel />
+      <CouncilPanel />
+      <VetoPanel tasks={tasks} />
+      <RiskPanel />
+      <ChannelsPanel />
+    </div>
+  );
+}
+
 const NAV_ITEMS: { key: View; label: string }[] = [
   { key: "overview", label: "Tổng quan" },
+  { key: "org", label: "Sơ đồ tổ chức" },
   { key: "talk", label: "Trò chuyện giao tiếp" },
   { key: "chat", label: "Chat toàn công ty" },
   { key: "direct", label: "Tin riêng" },
@@ -5565,6 +6729,7 @@ const NAV_ITEMS: { key: View; label: string }[] = [
 
 const VIEW_TITLES: Record<View, string> = {
   overview: "Tổng quan công ty",
+  org: "Sơ đồ tổ chức — MUSE COMPANY",
   talk: "Trò chuyện giao tiếp",
   chat: "Chat toàn công ty",
   direct: "Tin riêng · Tổng giám đốc ↔ Đạo diễn",
@@ -5716,6 +6881,8 @@ export function App() {
           ) : null}
           {view === "overview" ? (
             <Overview tasks={tasks} go={go} openTask={setSelectedTask} openTaskAtStage={openTaskAtStage} openStaff={setSelectedStaff} openChat={openChatWith} />
+          ) : view === "org" ? (
+            <OrgView tasks={tasks} go={go} />
           ) : view === "talk" ? (
             <TalkView focusStaffId={talkFocus?.staffId ?? null} focusNonce={talkFocus?.nonce ?? 0} openStaff={setSelectedStaff} />
           ) : view === "board" ? (
