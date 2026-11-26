@@ -643,7 +643,10 @@ function makeLabelSprite(text: string, lamp?: LampKind): THREE.Sprite {
   tex.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
   const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(4.6, 0.79, 1);
+  // Nhãn phòng NHỎ lại nữa (Chủ tịch chốt): 3.0 × 0.52 — chữ
+  // vẫn tự co cho vừa khung, không cắt chữ; vòng lặp render
+  // còn co thêm theo khoảng cách camera khi bay vào gần.
+  sprite.scale.set(3.0, 0.52, 1);
   sprite.renderOrder = 10;
   return sprite;
 }
@@ -671,9 +674,17 @@ function makeNameplate(label: string): THREE.Mesh {
     g.lineWidth = 5;
     g.strokeRect(4, 4, 504, 88);
     g.fillStyle = "#ffffff";
-    g.font = "bold 37px 'Segoe UI', system-ui, sans-serif";
     g.textAlign = "center";
     const text = label.length > 24 ? label.slice(0, 24) : label;
+    // Cỡ chữ tự co cho vừa khung 512: tên dài + hậu tố giới
+    // tính không còn tràn mép / cắt chữ ở hai đầu bảng.
+    let fs = 37;
+    g.font = `bold ${fs}px 'Segoe UI', system-ui, sans-serif`;
+    const tw = g.measureText(text).width;
+    if (tw > 470) {
+      fs = Math.max(24, Math.floor((fs * 470) / tw));
+      g.font = `bold ${fs}px 'Segoe UI', system-ui, sans-serif`;
+    }
     g.fillText(text, 256, 62);
   }
   const tex = new THREE.CanvasTexture(canvas);
@@ -711,8 +722,9 @@ const TAG_RANK_STYLE: Record<TagRank, { bg: string; fg: string }> = {
   staff: { bg: "rgba(250,250,252,0.95)", fg: "#221a3e" },
 };
 
-// Cao độ treo bảng tên: cao hẳn trên đầu, không đè lên người.
-const TAG_BASE_Y = 2.02;
+// Cao độ treo bảng tên: cao hẳn trên đầu, không đè lên người,
+// không che màn hình của người ngồi sau khi nhìn từ trên xuống.
+const TAG_BASE_Y = 2.18;
 
 function makeHeadTag(name: string, rank: TagRank): THREE.Sprite {
   const canvas = document.createElement("canvas");
@@ -743,7 +755,10 @@ function makeHeadTag(name: string, rank: TagRank): THREE.Sprite {
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }),
   );
-  sprite.scale.set(1.25, 0.28, 1);
+  // Bảng tên NHỎ HƠN NỮA (0.92 × 0.205), chỉ tên ngắn, treo
+  // cao trên đầu — ở góc ngồi gần bàn nó không còn phình to
+  // đè lên ngực / màn hình như cỡ cũ.
+  sprite.scale.set(0.92, 0.205, 1);
   sprite.renderOrder = 9;
   return sprite;
 }
@@ -956,13 +971,17 @@ function buildAvatar(
   }
   if (ap.hairStyle === "long" || ap.hairStyle === "bob") {
     const len = ap.hairStyle === "long" ? 0.52 : 0.3;
-    const back = new THREE.Mesh(new THREE.BoxGeometry(0.33, len, 0.1), hairMat);
+    // Tóc sau lưng: ống bo tròn ép dẹt (capsule) thay cho tấm
+    // hộp vuông — tóc rủ mềm, bớt "khối hộp" rõ rệt.
+    const back = new THREE.Mesh(new THREE.CapsuleGeometry(0.165, len * 0.72, 4, 10), hairMat);
     back.position.set(0, 0.06 - len / 2, 0.155);
+    back.scale.set(1.02, 1, 0.34);
     back.castShadow = true;
     head.add(back);
     for (const s of [-1, 1]) {
-      const side = new THREE.Mesh(new THREE.BoxGeometry(0.055, len * 0.8, 0.16), hairMat);
+      const side = new THREE.Mesh(new THREE.CapsuleGeometry(0.032, len * 0.62, 4, 8), hairMat);
       side.position.set(0.175 * s, 0.03 - (len * 0.8) / 2, 0.02);
+      side.scale.set(1, 1, 1.6);
       head.add(side);
     }
   }
@@ -1018,8 +1037,10 @@ function buildAvatar(
     // Chân bo tròn dạng ống (capsule) thay cho hộp vuông.
     const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.37, 4, 10), legMat);
     mesh.position.y = -0.25;
-    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.06, 0.22), shoeMat);
+    // Giày bo tròn (cầu ép dẹt) thay cho hộp vuông.
+    const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 8), shoeMat);
     shoe.position.set(0, -0.5, -0.03);
+    shoe.scale.set(0.82, 0.42, 1.5);
     leg.add(mesh, shoe);
     return leg;
   };
@@ -1086,6 +1107,46 @@ function woodTexture(): THREE.CanvasTexture {
     }
   });
   return _woodTex;
+}
+
+let _walnutTex: THREE.CanvasTexture | null = null;
+// Gỗ ÓC CHÓ vân rõ cho phòng Chủ tịch: nền nâu sẫm, vân sóng
+// đậm nhạt xen nhau + mắt gỗ — khác hẳn gỗ sáng vân mờ của
+// bàn làm việc thường, nhìn vào là thấy gỗ xịn.
+function walnutTexture(): THREE.CanvasTexture {
+  if (_walnutTex) return _walnutTex;
+  _walnutTex = makeSurfaceTexture((g, s) => {
+    g.fillStyle = "#503722";
+    g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 64; i++) {
+      const y = Math.random() * s;
+      const dark = Math.random() > 0.42;
+      g.strokeStyle = dark
+        ? `rgba(26,15,6,${0.28 + Math.random() * 0.3})`
+        : `rgba(146,104,62,${0.2 + Math.random() * 0.26})`;
+      g.lineWidth = 0.8 + Math.random() * 3.6;
+      g.beginPath();
+      g.moveTo(0, y);
+      for (let x = 0; x <= s; x += 24) {
+        g.lineTo(x, y + Math.sin(x * 0.045 + i * 1.7) * 3.4 + Math.sin(x * 0.012 + i) * 2.2);
+      }
+      g.stroke();
+    }
+    for (let i = 0; i < 9; i++) {
+      const x = Math.random() * s;
+      const y = Math.random() * s;
+      g.strokeStyle = "rgba(24,13,5,0.5)";
+      g.lineWidth = 1.6;
+      g.beginPath();
+      g.ellipse(x, y, 3 + Math.random() * 4, 8 + Math.random() * 10, 0.25, 0, Math.PI * 2);
+      g.stroke();
+      g.strokeStyle = "rgba(150,108,64,0.35)";
+      g.beginPath();
+      g.ellipse(x, y, 6 + Math.random() * 6, 13 + Math.random() * 12, 0.25, 0, Math.PI * 2);
+      g.stroke();
+    }
+  });
+  return _walnutTex;
 }
 
 let _carpetTex: THREE.CanvasTexture | null = null;
@@ -1224,15 +1285,25 @@ function buildWorkstation(
   big = false,
   opts?: {
     coffee?: boolean;
+    executive?: boolean;
     onScreen?: (g: CanvasRenderingContext2D | null, tex: THREE.CanvasTexture) => void;
     steamSink?: SteamPuff[];
   },
 ): THREE.Group {
   const unit = new THREE.Group();
-  const topMat = new THREE.MeshStandardMaterial({ color: big ? 0xa87e52 : 0xbb9264, map: woodTexture(), roughness: 0.55 });
+  // Bàn EXECUTIVE của Chủ tịch: mặt óc chó vân rõ 3.3 × 1.15,
+  // hai tủ ngăn kéo thay chân bàn, vách che + nẹp đồng, thảm
+  // da trên mặt bàn, ghế da lưng cao — thay hẳn bàn tấm trơn.
+  const exec = opts?.executive ?? false;
+  const topMat = exec
+    ? new THREE.MeshStandardMaterial({ color: 0x9a7a56, map: walnutTexture(), roughness: 0.42 })
+    : new THREE.MeshStandardMaterial({ color: big ? 0xa87e52 : 0xbb9264, map: woodTexture(), roughness: 0.55 });
   const legMat = new THREE.MeshStandardMaterial({ color: 0x5d4630, map: woodTexture(), roughness: 0.7 });
-  const top = new THREE.Mesh(new THREE.BoxGeometry(big ? 2.6 : 1.9, 0.1, 0.95), topMat);
-  top.position.y = 0.74;
+  const top = new THREE.Mesh(
+    new THREE.BoxGeometry(exec ? 3.3 : big ? 2.6 : 1.9, exec ? 0.12 : 0.1, exec ? 1.15 : 0.95),
+    topMat,
+  );
+  top.position.y = exec ? 0.73 : 0.74;
   top.castShadow = true;
   const legL = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.72, 0.85), legMat);
   legL.position.set(big ? -1.18 : -0.82, 0.37, 0);
@@ -1243,7 +1314,7 @@ function buildWorkstation(
     new THREE.MeshStandardMaterial({
       color: 0x14102a,
       emissive: person.color,
-      emissiveIntensity: 0.65,
+      emissiveIntensity: 0.5,
       roughness: 0.35,
     }),
   );
@@ -1252,9 +1323,9 @@ function buildWorkstation(
   // the desk like real hardware instead of floating.
   const standMat = new THREE.MeshStandardMaterial({
     color: 0x8d8fa3,
-    roughness: 0.32,
+    roughness: 0.42,
     metalness: 0.85,
-    envMapIntensity: 1.1,
+    envMapIntensity: 0.6,
   });
   const standNeck = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.3, 0.05), standMat);
   standNeck.position.set(-0.25, 0.94, -0.27);
@@ -1270,9 +1341,9 @@ function buildWorkstation(
   drawDeskScreen(sCtx, sTex, "");
   const screenPlane = new THREE.Mesh(
     new THREE.PlaneGeometry(0.78, 0.48),
-    // Hệ số 0.82: mặt màn hình bớt chói (MeshBasicMaterial không chịu
-    // đèn nên mặc định sáng trắng gắt hơn mọi vật liệu khác).
-    new THREE.MeshBasicMaterial({ map: sTex, color: 0xd1d1d1 }),
+    // Hệ số hạ thêm: mặt màn hình bớt chói (MeshBasicMaterial không
+    // chịu đèn nên mặc định sáng trắng gắt hơn mọi vật liệu khác).
+    new THREE.MeshBasicMaterial({ map: sTex, color: 0xc2c2c2 }),
   );
   screenPlane.position.set(-0.25, 1.12, -0.208);
   opts?.onScreen?.(sCtx, sTex);
@@ -1299,12 +1370,15 @@ function buildWorkstation(
   );
   mouse.scale.set(1, 0.55, 1.5);
   mouse.position.set(0.22, 0.815, 0.14);
-  // Chair: seat, backrest, post.
-  const chairMat = new THREE.MeshStandardMaterial({ color: 0x2e2456, roughness: 0.9 });
-  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.08, 0.52), chairMat);
+  // Chair: seat, backrest, post. Ghế executive bọc da nâu,
+  // đệm rộng và lưng cao hơn hẳn ghế thường.
+  const chairMat = exec
+    ? new THREE.MeshStandardMaterial({ color: 0x6e4525, roughness: 0.55 })
+    : new THREE.MeshStandardMaterial({ color: 0x2e2456, roughness: 0.9 });
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(exec ? 0.64 : 0.56, 0.08, exec ? 0.56 : 0.52), chairMat);
   seat.position.set(0, 0.48, 0.62);
-  const back = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.62, 0.09), chairMat);
-  back.position.set(0, 0.86, 0.86);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(exec ? 0.64 : 0.56, exec ? 0.78 : 0.62, 0.09), chairMat);
+  back.position.set(0, exec ? 0.95 : 0.86, 0.86);
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.44, 8), chairMat);
   post.position.set(0, 0.24, 0.62);
   // Nameplate on the front edge of the desk: full name + gender, matching the
@@ -1321,7 +1395,7 @@ function buildWorkstation(
   const lampMat = new THREE.MeshStandardMaterial({
     color: 0x222222,
     emissive: LAMP_COLORS[lampKind],
-    emissiveIntensity: 0.85,
+    emissiveIntensity: 0.6,
     roughness: 0.35,
   });
   const stem = new THREE.Mesh(
@@ -1336,9 +1410,9 @@ function buildWorkstation(
     new THREE.CylinderGeometry(0.055, 0.14, 0.13, 12, 1, true),
     new THREE.MeshStandardMaterial({
       color: 0x2c2c3c,
-      roughness: 0.35,
+      roughness: 0.45,
       metalness: 0.7,
-      envMapIntensity: 1.0,
+      envMapIntensity: 0.55,
       side: THREE.DoubleSide,
     }),
   );
@@ -1353,7 +1427,7 @@ function buildWorkstation(
   bookA.rotation.y = 0.22;
   const bookB = new THREE.Mesh(
     new THREE.BoxGeometry(0.26, 0.03, 0.19),
-    new THREE.MeshStandardMaterial({ color: 0xf2f0fa, roughness: 0.8 }),
+    new THREE.MeshStandardMaterial({ color: 0xe9e2d2, roughness: 0.8 }),
   );
   bookB.position.set(-0.68, 0.845, 0.18);
   bookB.rotation.y = 0.05;
@@ -1362,7 +1436,41 @@ function buildWorkstation(
     new THREE.MeshStandardMaterial({ color: 0x3a6ea8, roughness: 0.45, metalness: 0.3 }),
   );
   penCup.position.set(0.5, 0.84, -0.3);
-  unit.add(top, legL, legR, monitor, standNeck, standFoot, screenPlane, keyboard, kbGlow, mouse, seat, back, post, plate, stem, bulb, shade, bookA, bookB, penCup);
+  if (exec) {
+    const walnutDark = new THREE.MeshStandardMaterial({ color: 0x7d5c39, map: walnutTexture(), roughness: 0.48 });
+    const brassMat = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.28, metalness: 0.85 });
+    // Hai tủ ngăn kéo hai đầu bàn: mỗi tủ 3 ngăn, mặt ngăn
+    // cùng gỗ mặt bàn, tay nắm đồng ngang.
+    for (const s of [-1, 1]) {
+      const ped = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.66, 1.02), walnutDark);
+      ped.position.set(s * 1.3, 0.35, 0);
+      ped.castShadow = true;
+      unit.add(ped);
+      for (let dIdx = 0; dIdx < 3; dIdx++) {
+        const front = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.16, 0.02), topMat);
+        front.position.set(s * 1.3, 0.56 - dIdx * 0.2, 0.52);
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.025, 0.025), brassMat);
+        handle.position.set(s * 1.3, 0.56 - dIdx * 0.2, 0.545);
+        unit.add(front, handle);
+      }
+    }
+    // Vách che trước (modesty panel) viền đồng + nẹp đồng
+    // chạy dọc mép trước mặt bàn + thảm da lót tay.
+    const modesty = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.5, 0.05), walnutDark);
+    modesty.position.set(0, 0.42, 0.4);
+    const modestyTrim = new THREE.Mesh(new THREE.BoxGeometry(1.98, 0.03, 0.055), brassMat);
+    modestyTrim.position.set(0, 0.68, 0.4);
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.02, 0.02), brassMat);
+    edge.position.set(0, 0.785, 0.575);
+    const pad = new THREE.Mesh(
+      new THREE.BoxGeometry(1.35, 0.016, 0.6),
+      new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.7 }),
+    );
+    pad.position.set(-0.05, 0.798, 0.1);
+    unit.add(modesty, modestyTrim, edge, pad);
+  }
+  unit.add(top, monitor, standNeck, standFoot, screenPlane, keyboard, kbGlow, mouse, seat, back, post, plate, stem, bulb, shade, bookA, bookB, penCup);
+  if (!exec) unit.add(legL, legR);
   if (opts?.coffee) {
     // A coffee cup with steam curling up while its owner works.
     const cup = new THREE.Mesh(
@@ -1449,6 +1557,59 @@ function buildSofa(color: number): THREE.Group {
   return sofa;
 }
 
+// SOFA DA SANG cho phòng Chủ tịch (thay sofa hộp trơn bị chê
+// "kém sang"): thân dài 2.3, ba đệm ngồi + ba đệm tựa riêng
+// hơi ngả, tay vịn cuộn tròn, chân đồng thấp — tỉ lệ và chi
+// tiết của một bộ sofa da tiếp khách thật.
+function buildLuxSofa(color: number): THREE.Group {
+  const sofa = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.58 });
+  const cushionMat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(color).offsetHSL(0, 0.02, 0.055),
+    roughness: 0.52,
+  });
+  const brass = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.3, metalness: 0.85 });
+  const base = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.34, 0.95), mat);
+  base.position.y = 0.27;
+  base.castShadow = true;
+  sofa.add(base);
+  for (const fx of [-1.02, 1.02]) {
+    for (const fz of [-0.38, 0.38]) {
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.1, 10), brass);
+      foot.position.set(fx, 0.05, fz);
+      sofa.add(foot);
+    }
+  }
+  for (let i = 0; i < 3; i++) {
+    const cx = (i - 1) * 0.72;
+    const cushion = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.16, 0.78), cushionMat);
+    cushion.position.set(cx, 0.52, 0.04);
+    cushion.castShadow = true;
+    sofa.add(cushion);
+    const backCushion = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.52, 0.15), cushionMat);
+    backCushion.position.set(cx, 0.9, -0.3);
+    backCushion.rotation.x = -0.13;
+    backCushion.castShadow = true;
+    sofa.add(backCushion);
+  }
+  const backFrame = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.78, 0.18), mat);
+  backFrame.position.set(0, 0.82, -0.42);
+  backFrame.castShadow = true;
+  sofa.add(backFrame);
+  for (const s of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.34, 0.95), mat);
+    arm.position.set(s * 1.03, 0.61, 0);
+    arm.castShadow = true;
+    sofa.add(arm);
+    const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.095, 0.95, 12), cushionMat);
+    roll.rotation.x = Math.PI / 2;
+    roll.position.set(s * 1.03, 0.83, 0);
+    roll.castShadow = true;
+    sofa.add(roll);
+  }
+  return sofa;
+}
+
 function buildPlant(): THREE.Group {
   const plant = new THREE.Group();
   const pot = new THREE.Mesh(
@@ -1485,6 +1646,51 @@ function buildPlant(): THREE.Group {
   return plant;
 }
 
+// CHẬU CÂY CẢNH NHỎ trong phòng (Chủ tịch chốt): chậu gốm thấp
+// ~0.3, tán lá gọn, cao tổng ~0.75 — cây cảnh đặt góc phòng như
+// văn phòng thật, KHÔNG phải cây to đùng (buildPlant cao ~1.9)
+// đứng trong phòng làm việc. Cây LỚN chỉ còn ở ngoài trời /
+// sảnh / khu vườn. Màu chậu + sắc lá đổi theo `variant` để các
+// phòng không phòng nào giống hệt phòng nào.
+function buildSmallPlant(variant = 0): THREE.Group {
+  const plant = new THREE.Group();
+  const potCols = [0xb56545, 0xe8e2d4, 0x4a4a52, 0x8a5a34];
+  const pot = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.19, 0.14, 0.3, 12),
+    new THREE.MeshStandardMaterial({ color: potCols[variant % potCols.length] ?? 0x8a5a34, roughness: 0.7 }),
+  );
+  pot.position.y = 0.15;
+  pot.castShadow = true;
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.025, 0.035, 0.22, 8),
+    new THREE.MeshStandardMaterial({ color: 0x5d4630, roughness: 0.9 }),
+  );
+  trunk.position.y = 0.38;
+  plant.add(pot, trunk);
+  const leafSets = [
+    [0x2f9e63, 0x37b24d, 0x27875a],
+    [0x3aa655, 0x2f9e63, 0x43c465],
+    [0x27875a, 0x1f7a4d, 0x37b24d],
+    [0x43c465, 0x2f9e63, 0x2e8b57],
+  ];
+  const cols = leafSets[variant % leafSets.length] ?? [0x2f9e63, 0x37b24d, 0x27875a];
+  const blobs: [number, number, number, number][] = [
+    [0, 0.62, 0, 0.26],
+    [-0.13, 0.5, 0.06, 0.18],
+    [0.13, 0.52, -0.05, 0.19],
+  ];
+  blobs.forEach(([bx, by, bz, br], i) => {
+    const leaves = new THREE.Mesh(
+      new THREE.SphereGeometry(br, 10, 8),
+      new THREE.MeshStandardMaterial({ color: cols[i % cols.length] ?? 0x2f9e63, roughness: 0.85 }),
+    );
+    leaves.position.set(bx, by, bz);
+    leaves.castShadow = true;
+    plant.add(leaves);
+  });
+  return plant;
+}
+
 export function Office3D({
   rooms,
   staffLamp,
@@ -1508,6 +1714,10 @@ export function Office3D({
   // Nhãn phòng kèm chấm trạng thái: giữ texture + tên để vẽ lại
   // chấm mỗi khi đèn phòng đổi (đỏ đang chạy / xanh đã xong / xám chờ).
   const roomLabelRef = useRef<Map<string, { tex: THREE.CanvasTexture; name: string }>>(new Map());
+  // Mọi sprite nhãn phòng + nhãn khu: vòng lặp render co nhỏ
+  // theo khoảng cách camera để khi bay vào ngồi gần bàn, nhãn
+  // không phình to che cả khung hình như trước.
+  const labelSpritesRef = useRef<Map<string, THREE.Sprite>>(new Map());
   const ceilMatsRef = useRef<Map<string, THREE.MeshStandardMaterial>>(new Map());
   const ceilLightsRef = useRef<Map<string, THREE.PointLight>>(new Map());
   const rigsRef = useRef<Map<string, AvatarRig>>(new Map());
@@ -1621,18 +1831,53 @@ export function Office3D({
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
+    // Probe the GL renderer string on a throwaway canvas BEFORE the
+    // real renderer exists: antialias and shadow support are creation-
+    // time / first-compile decisions, so the software-GL verdict has
+    // to be known up front (see the adaptive-quality note below).
+    let softwareGL = false;
+    try {
+      const probe = document.createElement("canvas");
+      const pctx =
+        probe.getContext("webgl2") ?? probe.getContext("webgl");
+      if (pctx) {
+        const dbg = pctx.getExtension("WEBGL_debug_renderer_info");
+        const rendererName = dbg
+          ? String(pctx.getParameter(dbg.UNMASKED_RENDERER_WEBGL))
+          : "";
+        softwareGL = /swiftshader|llvmpipe|softpipe|software/i.test(rendererName);
+        pctx.getExtension("WEBGL_lose_context")?.loseContext();
+      }
+    } catch {
+      softwareGL = false;
+    }
     let renderer: THREE.WebGLRenderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer = new THREE.WebGLRenderer({
+        antialias: !softwareGL,
+        powerPreference: "high-performance",
+      });
     } catch (e) {
       setError(`Không khởi tạo được WebGL: ${String(e)}`);
       return;
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-    renderer.shadowMap.enabled = true;
+    // GL phần mềm: hạ hẳn xuống 0.5 — số điểm ảnh phải tô giảm 4
+    // lần so với ratio 1, đây là đòn bẩy lớn nhất cho SwiftShader
+    // (mỗi khung hình từng tốn vài giây, chiếm cứng main thread
+    // khiến máy kiểm tra không chụp nổi ảnh). Canvas vẫn hiển thị
+    // đúng kích thước CSS, chỉ mềm hơn trên máy không GPU.
+    renderer.setPixelRatio(softwareGL ? 0.5 : Math.min(window.devicePixelRatio, 1.5));
+    // Bóng đổ là khâu đắt nhất trên rasterizer phần mềm: mỗi khung
+    // hình phải vẽ lại TOÀN CẢNH vào bản đồ bóng trước khi vẽ chính.
+    // Trên GL phần mềm tắt hẳn bóng đổ (vật vẫn nhận sáng đầy đủ từ
+    // 3 đèn hướng + ambient + hemisphere nên phòng không tối), trên
+    // GPU thật giữ PCFSoft như cũ.
+    renderer.shadowMap.enabled = !softwareGL;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    // Phơi sáng hạ nhẹ (1.0 → 0.95): cùng tông ACES nhưng các
+    // bề mặt sáng (mặt bàn, kính, màn hình) không còn cháy trắng.
+    renderer.toneMappingExposure = 0.95;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
 
@@ -1645,22 +1890,13 @@ export function Office3D({
     // llvmpipe — headless test browsers, VMs without a GPU) renders
     // this scene orders of magnitude slower than a real GPU, and the
     // HDR post chain would block its main thread. On software GL the
-    // office falls back to the plain renderer, smaller shadows and
-    // a lower pixel ratio; on any real GPU everything below runs in
-    // full. The scene, layout and interactions are identical either
-    // way — only the polish layer adapts.
-    let softwareGL = false;
-    try {
-      const gl = renderer.getContext();
-      const dbg = gl.getExtension("WEBGL_debug_renderer_info");
-      const rendererName = dbg
-        ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL))
-        : "";
-      softwareGL = /swiftshader|llvmpipe|softpipe|software/i.test(rendererName);
-    } catch {
-      softwareGL = false;
-    }
-    if (softwareGL) renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+    // office falls back to the plain renderer with NO shadow pass,
+    // NO antialias, pixel ratio 1 and NO per-room point lights (the
+    // emissive ceiling panels still read as lit); on any real GPU
+    // everything below runs in full. The scene, layout and
+    // interactions are identical either way — only the polish
+    // layer adapts. (softwareGL was probed above, before the
+    // renderer was created.)
 
     // Environment reflections generated IN CODE (RoomEnvironment via
     // PMREM — no external HDRI/image is ever loaded): glass, brushed
@@ -1749,13 +1985,14 @@ export function Office3D({
     scene.add(rim);
 
     // Shared LED strip material: warm emissive, tone-mapped off —
-    // Chủ tịch báo CHÓI nên hạ hẳn xuống 1.25 (chỉ còn sáng ấm rõ,
-    // vừa đủ qua ngưỡng bloom nhẹ, không lóa mắt, không cháy trắng):
-    // ceiling coves, stair nosings and sign halos all use it.
+    // Chủ tịch báo CHÓI VỆT TRẮNG CHÁY nên hạ xuống 0.95: DƯỚI
+    // ngưỡng bloom (1.15) hẳn, chỉ còn sáng ấm rõ, không lóa mắt,
+    // không cháy trắng trên bàn/kính: ceiling coves, stair nosings
+    // and sign halos all use it.
     const ledMat = new THREE.MeshStandardMaterial({
       color: 0x201408,
       emissive: 0xffd9a0,
-      emissiveIntensity: 1.25,
+      emissiveIntensity: 0.95,
       roughness: 0.4,
       toneMapped: false,
     });
@@ -1774,7 +2011,7 @@ export function Office3D({
         composer = new EffectComposer(renderer, rt);
         composer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
         composer.addPass(new RenderPass(scene, camera));
-        const bloom = new UnrealBloomPass(new THREE.Vector2(320, 200), 0.3, 0.45, 1.15);
+        const bloom = new UnrealBloomPass(new THREE.Vector2(320, 200), 0.17, 0.45, 1.15);
         composer.addPass(bloom);
         composer.addPass(new OutputPass());
       } catch {
@@ -1828,17 +2065,17 @@ export function Office3D({
     {
       const periMat = new THREE.MeshStandardMaterial({
         color: 0x8fb0e8,
-        roughness: 0.06,
+        roughness: 0.16,
         metalness: 0.2,
         transparent: true,
         opacity: 0.28,
-        envMapIntensity: 1.15,
+        envMapIntensity: 0.4,
       });
       const periEdgeMat = new THREE.MeshStandardMaterial({
         color: 0x8d84b8,
-        roughness: 0.34,
+        roughness: 0.42,
         metalness: 0.85,
-        envMapIntensity: 1.1,
+        envMapIntensity: 0.65,
       });
       const periH = 3.1;
       const PX = 30.6; // |x| of the left / right perimeter walls
@@ -2393,20 +2630,23 @@ export function Office3D({
     // Architectural glass: transparent with light reflections from
     // the code-generated environment (envMapIntensity) — NO heavy
     // transmission, per the performance budget.
+    // Kính MỀM (Chủ tịch chốt phần 2 — hết vệt trắng cháy trên
+    // kính): nhám hơn một chút và phản chiếu môi trường hạ hẳn,
+    // kính chỉ còn ánh nhẹ thay vì loé vệt trắng dưới nắng.
     const glassMat = new THREE.MeshStandardMaterial({
       color: 0x8fb0e8,
-      roughness: 0.06,
+      roughness: 0.26,
       metalness: 0.2,
       transparent: true,
       opacity: 0.24,
-      envMapIntensity: 0.85,
+      envMapIntensity: 0.3,
     });
     // Brushed-metal frame material for trims, mullions and door frames.
     const glassEdgeMat = new THREE.MeshStandardMaterial({
       color: 0x8d84b8,
-      roughness: 0.34,
+      roughness: 0.42,
       metalness: 0.85,
-      envMapIntensity: 1.1,
+      envMapIntensity: 0.65,
     });
     // Near-clear glass for the Tổng giám đốc room's FRONT wall: from
     // his desk he sees straight out over the empty forecourt and the hall,
@@ -2414,11 +2654,11 @@ export function Office3D({
     // standard tinted glass.
     const clearGlassMat = new THREE.MeshStandardMaterial({
       color: 0xd6e6ff,
-      roughness: 0.04,
+      roughness: 0.22,
       metalness: 0.1,
       transparent: true,
       opacity: 0.1,
-      envMapIntensity: 1.1,
+      envMapIntensity: 0.28,
     });
     // Baseboard (len chân tường) material: dark stained wood.
     const baseMat = new THREE.MeshStandardMaterial({
@@ -2724,9 +2964,11 @@ export function Office3D({
             stone.position.set(s * 4.3, -0.42, 6.24);
             g.add(stone);
           }
-          const pondLight = new THREE.PointLight(0xffd9a0, 5, 7, 1.6);
-          pondLight.position.set(0, 1.5, 5.3);
-          g.add(pondLight);
+          if (!softwareGL) {
+            const pondLight = new THREE.PointLight(0xffd9a0, 3.2, 7, 1.6);
+            pondLight.position.set(0, 1.5, 5.3);
+            g.add(pondLight);
+          }
         }
         // The two narrow slots outside the channels — where the
         // removed fins (2 vách thừa) stood — are filled level
@@ -3058,6 +3300,9 @@ export function Office3D({
             doorPlate.position.set(0, 2.78, corrZ + 0.01);
             g.add(doorPlate);
             // Two framed paintings on the partition, corridor side.
+            // Treo tâm 2.06 (mép dưới 1.49): cao hẳn trên lưng
+            // ghế chờ (1.35) và đèn bàn chờ (~1.34) ở dưới, tranh
+            // nhìn trọn vẹn từ hành lang — không vật gì che.
             const corrPainting = (cx: number, hueShift: number) => {
               const grp = new THREE.Group();
               const fr = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.15, 0.06), corrWalnut);
@@ -3092,14 +3337,14 @@ export function Office3D({
               const face = new THREE.Mesh(new THREE.PlaneGeometry(1.84, 0.99), new THREE.MeshBasicMaterial({ map: ptex }));
               face.position.z = 0.04;
               grp.add(face);
-              grp.position.set(cx, 1.98, corrZ);
+              grp.position.set(cx, 2.06, corrZ);
               return grp;
             };
             g.add(corrPainting(-4.35, 0));
             g.add(corrPainting(4.35, 60));
             // Four warm wall sconces along the partition.
             const sconceShadeMat = new THREE.MeshStandardMaterial({
-              color: 0xf2c14e, roughness: 0.5, emissive: 0xffc978, emissiveIntensity: 0.9, side: THREE.DoubleSide,
+              color: 0xf2c14e, roughness: 0.5, emissive: 0xffc978, emissiveIntensity: 0.72, side: THREE.DoubleSide,
             });
             for (const sx of [-6.4, -2.3, 2.3, 6.4]) {
               const base = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.3, 0.05), corrBrass);
@@ -3131,7 +3376,7 @@ export function Office3D({
             // Warm ceiling panels over the corridor + a brass
             // chandelier over the door approach + one warm light.
             const corrCeilMat = new THREE.MeshStandardMaterial({
-              color: 0x35355a, emissive: 0xffd9a0, emissiveIntensity: 0.9, roughness: 0.4,
+              color: 0x35355a, emissive: 0xffd9a0, emissiveIntensity: 0.7, roughness: 0.4,
             });
             for (const px of [-4.4, 0, 4.4]) {
               const panel = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.07, 0.9), corrCeilMat);
@@ -3147,7 +3392,7 @@ export function Office3D({
             ring.position.y = 3.02;
             chand.add(ring);
             const bulbMat = new THREE.MeshStandardMaterial({
-              color: 0xfff1cf, emissive: 0xffc978, emissiveIntensity: 1.05, roughness: 0.3,
+              color: 0xfff1cf, emissive: 0xffc978, emissiveIntensity: 0.8, roughness: 0.3,
             });
             for (let bi = 0; bi < 6; bi++) {
               const a = (bi / 6) * Math.PI * 2;
@@ -3160,21 +3405,24 @@ export function Office3D({
             chand.add(centreBulb);
             chand.position.set(0, 0, 4.28);
             g.add(chand);
-            const corrLight = new THREE.PointLight(0xffd9a0, 9, 10, 1.6);
-            corrLight.position.set(0, 2.7, 4.28);
-            g.add(corrLight);
-            // 2 CÂY GẦN CỬA DỜI RA 2 GÓC PHÒNG (Chủ tịch đính
-            // chính mới nhất): the two plants that used to flank
-            // the main door (x ±1.6, crowding the doorway and the
+            if (!softwareGL) {
+              const corrLight = new THREE.PointLight(0xffd9a0, 5.5, 10, 1.6);
+              corrLight.position.set(0, 2.7, 4.28);
+              g.add(corrLight);
+            }
+            // 2 CHẬU CÂY CẢNH NHỎ Ở 2 GÓC HÀNH LANG (Chủ tịch
+            // đính chính): the two plants that used to flank the
+            // main door (x ±1.6, crowding the doorway and the
             // door approach) now stand in the corridor's TWO FAR
             // CORNERS, tight against the partition at its two ends
             // (x ±(room.w/2 − 0.85)): nothing stands near the door
             // any more — the ONE main door, its approach and the
-            // corridor's walking band stay completely clear, and
-            // the trees dress the two corners instead.
+            // corridor's walking band stay completely clear. Nay
+            // là chậu cây cảnh NHỎ (buildSmallPlant), không còn
+            // cây to trong phòng theo quy tắc cây mới.
             for (const sgn of [-1, 1]) {
-              const cp = buildPlant();
-              cp.scale.setScalar(0.95);
+              const cp = buildSmallPlant(sgn < 0 ? 1 : 2);
+              cp.scale.setScalar(1.1);
               cp.position.set(sgn * (room.w / 2 - 0.85), 0.22, partZ + 0.55);
               g.add(cp);
               cp.traverse((o) => {
@@ -3182,6 +3430,45 @@ export function Office3D({
                   plantsRef.current.push(o);
                 }
               });
+            }
+            // PHÒNG CHỜ NHỎ TRƯỚC CỬA CHÍNH (Chủ tịch chốt):
+            // hai ghế chờ da áp vách ngăn, đối xứng hai bên
+            // cửa, mỗi bên một bàn nhỏ tròn óc chó với đèn bàn
+            // đồng ánh ấm; tranh đã treo sẵn trên đầu, đèn ốp
+            // tường ấm đã có hai bên. Ghế đứng sát vách ở mép
+            // thảm chạy — dải đi lại giữa hành lang (z ≈ 4.2,
+            // từ hai đầu cầu thang vào cửa) vẫn trống hoàn toàn.
+            const waitLeather = new THREE.MeshStandardMaterial({ color: 0x6e4525, roughness: 0.6 });
+            const waitShadeMat = new THREE.MeshStandardMaterial({
+              color: 0xf2c14e, roughness: 0.5, emissive: 0xffc978, emissiveIntensity: 0.65, side: THREE.DoubleSide,
+            });
+            const waitChair = (cx: number) => {
+              const grp = new THREE.Group();
+              const frameW = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.42, 0.54), corrWalnut);
+              frameW.position.y = 0.21;
+              frameW.castShadow = true;
+              const seatW = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.09, 0.5), waitLeather);
+              seatW.position.y = 0.46;
+              seatW.castShadow = true;
+              const backW = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.62, 0.09), waitLeather);
+              backW.position.set(0, 0.82, -0.24);
+              backW.castShadow = true;
+              grp.add(frameW, seatW, backW);
+              grp.position.set(cx, 0.22, partZ + 0.52);
+              return grp;
+            };
+            g.add(waitChair(-2.9), waitChair(2.9));
+            for (const sgn of [-1, 1]) {
+              const sideT = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.05, 16), corrWalnut);
+              sideT.position.set(sgn * 3.85, 0.78, partZ + 0.52);
+              sideT.castShadow = true;
+              const sideLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.55, 8), corrBrass);
+              sideLeg.position.set(sgn * 3.85, 0.5, partZ + 0.52);
+              const lampStemW = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.22, 8), corrBrass);
+              lampStemW.position.set(sgn * 3.85, 0.92, partZ + 0.52);
+              const lampShadeW = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 0.12, 12, 1, true), waitShadeMat);
+              lampShadeW.position.set(sgn * 3.85, 1.06, partZ + 0.52);
+              g.add(sideT, sideLeg, lampStemW, lampShadeW);
             }
           }
         } else if (room.x !== 0) {
@@ -3276,18 +3563,35 @@ export function Office3D({
         // Framed abstract art on the back wall of working rooms
         // (the Chủ tịch room has its own gold logo + corridor
         // paintings; the meeting room has its whiteboard).
-        if (room.id !== "chairman" && room.id !== "meeting") {
+        // TRANH PHẢI TRỌN VẸN (Chủ tịch đính chính): tranh treo
+        // trên mảng tường TRỐNG, không bị cây / ghế / tủ / bảng
+        // che một phần nào, nhìn trọn từ cửa và từ bàn:
+        // - Treo cao hơn trước (tâm 1.85, mép dưới 1.34): cao
+        //   hơn lưng ghế (~1.1), màn hình (~1.3) và tủ hồ sơ
+        //   thấp của Phòng Tài chính (1.14).
+        // - 11 phòng ban có bảng trắng board2 (x 0.35..2.75) +
+        //   kệ phải (1.86..3.64, cao 1.92) đè gần hết tranh ở
+        //   vị trí cũ x=0.2w → dời tranh sang mảng trống giữa
+        //   kệ trái (kết thúc −1.86) và bảng (bắt đầu 0.35):
+        //   tâm −0.75, tranh chiếm −1.5..0, trống hai bên.
+        // - Phòng Chiếu KHÔNG treo tranh (màn chiếu 4.6 rộng
+        //   phủ tường sau, tranh chui sau màn); Kho cũng không
+        //   (thùng hàng xếp cao sát tường sau che mất tranh,
+        //   và kho không treo tranh trang trí).
+        if (room.id !== "chairman" && room.id !== "meeting" && room.id !== "screening" && room.id !== "warehouse") {
           const artSeed = Math.abs(Math.round(room.x * 3 + room.z * 7)) + room.name.length;
+          const deptRoom = ["strategy", "hr", "content", "marketing", "publish", "sales", "sound", "secretary", "clerical", "finance", "legal"].includes(room.id);
+          const artX = deptRoom ? -0.75 : room.w * 0.2;
           const frame = new THREE.Mesh(
             new THREE.BoxGeometry(1.5, 1.02, 0.05),
             new THREE.MeshStandardMaterial({ color: 0x2c2016, roughness: 0.5, map: woodTexture() }),
           );
-          frame.position.set(room.w * 0.2, 1.72, -room.d / 2 + 0.17);
+          frame.position.set(artX, 1.85, -room.d / 2 + 0.17);
           const face = new THREE.Mesh(
             new THREE.PlaneGeometry(1.36, 0.88),
             new THREE.MeshStandardMaterial({ map: artTexture(artSeed), roughness: 0.6 }),
           );
-          face.position.set(room.w * 0.2, 1.72, -room.d / 2 + 0.2);
+          face.position.set(artX, 1.85, -room.d / 2 + 0.2);
           g.add(frame, face);
         }
       }
@@ -3296,7 +3600,7 @@ export function Office3D({
       const ceilMat = new THREE.MeshStandardMaterial({
         color: 0x35355a,
         emissive: 0xfff3d6,
-        emissiveIntensity: active ? 0.8 : 0.18,
+        emissiveIntensity: active ? 0.55 : 0.18,
         roughness: 0.4,
       });
       ceilMats.set(room.id, ceilMat);
@@ -3317,8 +3621,12 @@ export function Office3D({
           g.add(panel, rod);
         }
       }
-      if (["chairman", "ceo", "director", "video", "meeting"].includes(room.id)) {
-        const pl = new THREE.PointLight(0xffe9c4, active ? 6.5 : 2, 13, 1.6);
+      if (!softwareGL && ["chairman", "ceo", "director", "video", "meeting"].includes(room.id)) {
+        // PointLights are skipped on software GL: in the forward
+        // renderer every point light raises the fragment cost of
+        // EVERY material in the scene. The emissive ceiling panels
+        // above still read as the room's light source.
+        const pl = new THREE.PointLight(0xffe9c4, active ? 3.1 : 1.5, 13, 1.6);
         if (room.id === "chairman") pl.distance = 16;
         pl.position.set(0, 2.9, 0);
         g.add(pl);
@@ -3353,10 +3661,13 @@ export function Office3D({
       // Chairman label hangs over the back band of his square room.
       label.position.set(
         0,
-        3.85,
+        // Ô Lễ tân không có trần/tường: nhãn treo thấp vừa trên
+        // vách ngăn (2.7) thay vì lơ lửng ở cao độ trần 3.85.
+        room.id === "reception" ? 2.7 : 3.85,
         room.id === "chairman" ? -5.4 : room.z > 5 ? -room.d / 2 + 0.9 : room.d / 2 - 0.2,
       );
       g.add(label);
+      labelSpritesRef.current.set(room.id, label);
 
       roomFocus.set(room.id, {
         center: new THREE.Vector3(room.x, baseY + 0.5 - FLOOR_DROP, room.z),
@@ -3369,60 +3680,67 @@ export function Office3D({
         const cab = buildWoodCabinet();
         cab.position.set(-room.w / 2 + 1.15, 0.22, -room.d / 2 + 0.5);
         g.add(cab);
-      } else {
+      } else if (room.id !== "reception") {
         const shelf = buildShelf();
         shelf.position.set(-room.w / 2 + 1.15, 0.22, -room.d / 2 + 0.45);
         g.add(shelf);
       }
-      const plant = buildPlant();
-      if (room.id === "chairman") plant.scale.setScalar(1.4);
-      if (room.id === "chairman") {
-        // DẸP CÂY CHẮN LỐI (Chủ tịch đính chính gấp): this plant
-        // used to stand in the room's front-right corner — but
-        // that corner lies inside the front CORRIDOR, right
-        // where the right FLIPPED flight now climbs from its
-        // open passage, so the tree blocked the way up the
-        // stair and into the room.
-        // It now stands in the front-right corner of the MAIN
-        // CHAMBER, just behind the partition (local z =
-        // partition − 0.95): a corner on no walkway — clear of
-        // the corridor, both passages, the ONE main door and
-        // the door-to-desk path. Trees only ever stand in
-        // corners that block no path, no stair and no door.
-        plant.position.set(room.w / 2 - 1.0, 0.22, room.d / 2 - 0.07 - 4.6 - 0.95);
-      } else {
-        // Every other room: front-right corner, clear of that
-        // room's door (side wall, centre) and its desks.
-        plant.position.set(room.w / 2 - 0.85, 0.22, room.d / 2 - 0.85);
-      }
-      g.add(plant);
-      plant.traverse((o) => {
-        if (o instanceof THREE.Mesh && o.geometry instanceof THREE.SphereGeometry) {
-          plantsRef.current.push(o);
+      // CÂY TRONG PHÒNG — QUY TẮC MỚI (Chủ tịch chốt): bỏ hẳn
+      // cây TO trong phòng làm việc; cây lớn chỉ ở ngoài trời /
+      // sảnh / khu vườn. Trong phòng chỉ CHẬU CÂY CẢNH NHỎ
+      // (buildSmallPlant) đặt sát góc phòng, không đè bàn / ghế /
+      // cửa / lối đi. KHÔNG phòng nào cũng có cây giống nhau:
+      // chậu đổi màu chậu + sắc lá + góc đặt theo từng phòng, và
+      // các phòng Họp / Kho / In ấn / Âm thanh / Chiếu KHÔNG có
+      // cây (đúng tính chất phòng). Ô Lễ tân cũng không cây (kệ
+      // sau lưng từng đè ghế Ngọc Anh, chậu góc từng chồm lên
+      // mặt bàn che màn hình — cây của sảnh đứng ở hai góc tiền
+      // sảnh, ngoài ô trực).
+      const NO_PLANT_ROOMS = ["reception", "meeting", "warehouse", "print", "sound", "screening"];
+      const plantSeed = [...room.id].reduce((a, c) => a + c.charCodeAt(0), 0);
+      const plant = NO_PLANT_ROOMS.includes(room.id) ? null : buildSmallPlant(plantSeed);
+      if (plant) {
+        if (room.id === "chairman") {
+          // Góc trước-phải khoang chính, ngay sau vách ngăn: góc
+          // không nằm trên lối đi nào — xa hành lang, hai lối mở,
+          // cửa chính duy nhất và đường cửa → bàn. (Chậu nhỏ
+          // thay cây to phóng 1.4 lần cũ theo quy tắc mới; cây to
+          // cũ còn từng đứng chắn lối lên cầu thang phải.)
+          plant.position.set(room.w / 2 - 0.7, 0.22, room.d / 2 - 0.07 - 4.6 - 0.95);
+        } else if (plantSeed % 2 === 0) {
+          // Góc trước-phải sát tường: xa cửa (cửa ở vách bên,
+          // giữa phòng), xa bàn làm việc, không chắn lối đi.
+          plant.position.set(room.w / 2 - 0.55, 0.22, room.d / 2 - 0.55);
+        } else {
+          // Phòng lẻ đặt góc trước-trái, để các phòng không
+          // phòng nào cũng một góc như nhau.
+          plant.position.set(-room.w / 2 + 0.55, 0.22, room.d / 2 - 0.55);
         }
-      });
+        g.add(plant);
+        plant.traverse((o) => {
+          if (o instanceof THREE.Mesh && o.geometry instanceof THREE.SphereGeometry) {
+            plantsRef.current.push(o);
+          }
+        });
+      }
 
       // Full dressing for every plain department room, exactly like the
       // reference image — no room left empty or sparse: on top of the
       // per-person workstations (desk, chair, monitor, desk lamp, desk
-      // nameplate), the back-left shelf and the front-right plant that
-      // every room already has, each of these rooms also gets a second
-      // document shelf in the back-right corner, a second plant in the
-      // front-left corner and a whiteboard on the back wall.
+      // nameplate), the back-left shelf and the one small potted plant
+      // from the shared block above, each of these rooms also gets a
+      // second document shelf in the back-right corner and a
+      // whiteboard on the back wall.
       if (
         ["strategy", "hr", "content", "marketing", "publish", "sales", "sound", "secretary", "clerical", "finance", "legal"].includes(room.id)
       ) {
         const shelf2 = buildShelf();
         shelf2.position.set(room.w / 2 - 1.15, 0.22, -room.d / 2 + 0.45);
         g.add(shelf2);
-        const plant2 = buildPlant();
-        plant2.position.set(-room.w / 2 + 0.85, 0.22, room.d / 2 - 0.85);
-        g.add(plant2);
-        plant2.traverse((o) => {
-          if (o instanceof THREE.Mesh && o.geometry instanceof THREE.SphereGeometry) {
-            plantsRef.current.push(o);
-          }
-        });
+        // Cây thứ hai ở góc trước-trái ĐÃ BỎ (quy tắc cây mới):
+        // mỗi phòng làm việc chỉ tối đa MỘT chậu cây cảnh nhỏ ở
+        // khối cây chung phía trên, không còn cảnh phòng nào
+        // cũng hai cây to giống hệt nhau.
         const board2 = new THREE.Mesh(
           new THREE.BoxGeometry(2.4, 1.4, 0.07),
           new THREE.MeshStandardMaterial({ color: 0xe8e6f5, roughness: 0.35 }),
@@ -3450,7 +3768,7 @@ export function Office3D({
         drawScreen(sCtx, sTex, null, "MÀN HÌNH QC — PHÒNG VIDEO");
         const screen = new THREE.Mesh(
           new THREE.PlaneGeometry(4.1, 1.75),
-          new THREE.MeshBasicMaterial({ map: sTex, color: 0xd9d9d9 }),
+          new THREE.MeshBasicMaterial({ map: sTex, color: 0xcccccc }),
         );
         screen.position.set(-1.7, 1.75, -room.d / 2 + 0.39);
         g.add(screen);
@@ -3538,7 +3856,7 @@ export function Office3D({
         drawScreen(sCtx, sTex, null, "MÀN HÌNH QC — ĐẠO DIỄN");
         const screen = new THREE.Mesh(
           new THREE.PlaneGeometry(4.2, 1.75),
-          new THREE.MeshBasicMaterial({ map: sTex, color: 0xd9d9d9 }),
+          new THREE.MeshBasicMaterial({ map: sTex, color: 0xcccccc }),
         );
         screen.position.set(1.6, 1.75, -room.d / 2 + 0.39);
         g.add(screen);
@@ -3564,7 +3882,7 @@ export function Office3D({
         // flights climb INTO the room along the interior
         // partition corridor to its ONE SINGLE MAIN DOOR at the
         // corridor's centre; no side doors, no flank stairs.
-        const walnut = new THREE.MeshStandardMaterial({ color: 0xa87e52, map: woodTexture(), roughness: 0.5 });
+        const walnut = new THREE.MeshStandardMaterial({ color: 0x8f6f4e, map: walnutTexture(), roughness: 0.46 });
         const leather = new THREE.MeshStandardMaterial({ color: 0x7a4a26, roughness: 0.75 });
         const brass = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.25, metalness: 0.85 });
 
@@ -3613,29 +3931,44 @@ export function Office3D({
         );
         lampShade2.position.set(-1.7, 1.2, -5.55);
 
-        // Leather guest sofa along the LEFT wall, with a round
-        // reception table (bàn tròn tiếp khách) in front of it:
-        // walnut disc top on a turned pedestal.
-        const sofa = buildSofa(0x71452a);
+        // Leather guest sofa along the LEFT wall — SOFA DA
+        // SANG (đệm riêng, tay cuộn, chân đồng) với BÀN TRÀ
+        // chữ nhật óc chó khung đồng trước mặt, trên bàn có
+        // chồng sách bìa da. Mặt bàn ở cao độ 0.87 như cũ để
+        // bộ ấm trà đặt sẵn khớp mặt bàn.
+        const sofa = buildLuxSofa(0x6e4525);
         sofa.position.set(-room.w / 2 + 0.95, 0.22, -1.2);
         sofa.rotation.y = Math.PI / 2;
-        const roundTable = (tx: number, tz: number, r: number) => {
+        const coffeeTable = (tx: number, tz: number) => {
           const grp = new THREE.Group();
-          const top = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.06, 22), walnut);
-          top.position.y = 0.62;
-          top.castShadow = true;
-          const rim = new THREE.Mesh(new THREE.TorusGeometry(r, 0.022, 8, 28), brass);
-          rim.rotation.x = Math.PI / 2;
-          rim.position.y = 0.62;
-          const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 0.56, 12), walnut);
-          pedestal.position.y = 0.31;
-          const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 0.05, 16), walnut);
-          foot.position.y = 0.03;
-          grp.add(top, rim, pedestal, foot);
+          const topT = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.06, 1.4), walnut);
+          topT.position.y = 0.62;
+          topT.castShadow = true;
+          const shelfT = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.04, 1.18), walnut);
+          shelfT.position.y = 0.16;
+          grp.add(topT, shelfT);
+          for (const [lx, lz] of [[-0.29, -0.6], [0.29, -0.6], [-0.29, 0.6], [0.29, 0.6]] as const) {
+            const legT = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.6, 8), brass);
+            legT.position.set(lx, 0.31, lz);
+            grp.add(legT);
+          }
+          const bookT1 = new THREE.Mesh(
+            new THREE.BoxGeometry(0.3, 0.045, 0.22),
+            new THREE.MeshStandardMaterial({ color: 0x6d1f2b, roughness: 0.55 }),
+          );
+          bookT1.position.set(0, 0.675, -0.32);
+          bookT1.rotation.y = 0.18;
+          const bookT2 = new THREE.Mesh(
+            new THREE.BoxGeometry(0.26, 0.04, 0.19),
+            new THREE.MeshStandardMaterial({ color: 0x274435, roughness: 0.55 }),
+          );
+          bookT2.position.set(0, 0.717, -0.32);
+          bookT2.rotation.y = -0.08;
+          grp.add(bookT1, bookT2);
           grp.position.set(tx, 0.22, tz);
           return grp;
         };
-        const table = roundTable(-room.w / 2 + 2.4, -1.2, 0.52);
+        const table = coffeeTable(-room.w / 2 + 2.4, -1.2);
 
         // Second walnut cabinet at the back-right, behind the
         // chairman (the back-left one is added for every room above).
@@ -3720,6 +4053,14 @@ export function Office3D({
         // Landscape painting (tranh phong cảnh) on the RIGHT wall: a
         // wide framed canvas — mountains, sun and green fields — in a
         // dark walnut frame with a gold inner edge.
+        // TRANH PHẢI TRỌN VẸN (Chủ tịch đính chính): khung cũ
+        // 4.6 × 2.3 tâm y 2.0 → mép dưới 0.85, bị lưng sofa tiếp
+        // khách thứ hai (cao 1.43) che mất dải dưới ~0.6 và tán
+        // cây to góc phòng (cao 2.66 bản cũ) che góc trước. Nay
+        // khung gọn lại 3.9 × 1.72, treo tâm y 2.34 → mép dưới
+        // 1.48, CAO HƠN lưng sofa (1.43) và tán chậu cây cảnh
+        // nhỏ góc phòng (~1.10): tranh nhìn trọn vẹn từ cửa
+        // chính và từ bàn làm việc, không vật gì che.
         const paintCanvas = document.createElement("canvas");
         paintCanvas.width = 512;
         paintCanvas.height = 288;
@@ -3771,20 +4112,20 @@ export function Office3D({
         const paintTex = new THREE.CanvasTexture(paintCanvas);
         paintTex.colorSpace = THREE.SRGBColorSpace;
         const paintFrame = new THREE.Mesh(
-          new THREE.BoxGeometry(0.09, 2.3, 4.6),
+          new THREE.BoxGeometry(0.09, 1.72, 3.9),
           new THREE.MeshStandardMaterial({ color: 0x3d2a16, roughness: 0.55 }),
         );
-        paintFrame.position.set(room.w / 2 - 0.14, 2.0, -0.5);
+        paintFrame.position.set(room.w / 2 - 0.14, 2.34, -0.5);
         const paintTrim = new THREE.Mesh(
-          new THREE.BoxGeometry(0.1, 2.1, 4.4),
+          new THREE.BoxGeometry(0.1, 1.56, 3.74),
           new THREE.MeshStandardMaterial({ color: 0xc9a227, roughness: 0.35, metalness: 0.6 }),
         );
-        paintTrim.position.set(room.w / 2 - 0.145, 2.0, -0.5);
+        paintTrim.position.set(room.w / 2 - 0.145, 2.34, -0.5);
         const painting = new THREE.Mesh(
-          new THREE.PlaneGeometry(4.24, 1.94),
+          new THREE.PlaneGeometry(3.58, 1.42),
           new THREE.MeshBasicMaterial({ map: paintTex }),
         );
-        painting.position.set(room.w / 2 - 0.2, 2.0, -0.5);
+        painting.position.set(room.w / 2 - 0.2, 2.34, -0.5);
         painting.rotation.y = -Math.PI / 2;
 
         // Two flags flanking the desk against the back wall: the
@@ -3855,10 +4196,13 @@ export function Office3D({
         flag2.position.set(2.28, 2.25, -room.d / 2 + 0.75);
 
         // Brass chandelier (đèn chùm) over the main desk.
+        // Bóng đèn chùm ẤM KHÔNG CHÓI: emissive 0.85 — dưới
+        // ngưỡng bloom 1.15 hẳn, chỉ còn quầng sáng vàng ấm,
+        // không lóa vệt trắng như bóng 1.3 trước đây.
         const warmGlowMat = new THREE.MeshStandardMaterial({
           color: 0x333333,
           emissive: 0xffc978,
-          emissiveIntensity: 1.3,
+          emissiveIntensity: 0.85,
           roughness: 0.4,
         });
         const chandelier = new THREE.Group();
@@ -3965,10 +4309,10 @@ export function Office3D({
         // Bộ sofa tiếp khách THỨ HAI dọc vách phải (dưới bức tranh lớn):
         // sofa da + bàn tròn + thảm đỏ viền vàng riêng — cân đối với bộ
         // bên trái, lấp hẳn khoảng trống nửa phải của phòng.
-        const sofa2 = buildSofa(0x71452a);
+        const sofa2 = buildLuxSofa(0x6e4525);
         sofa2.position.set(room.w / 2 - 0.95, 0.22, -0.6);
         sofa2.rotation.y = -Math.PI / 2;
-        const table2 = roundTable(room.w / 2 - 2.4, -0.6, 0.52);
+        const table2 = coffeeTable(room.w / 2 - 2.4, -0.6);
         const loungeTrim = new THREE.Mesh(new THREE.BoxGeometry(4.56, 0.012, 3.76), trimMat);
         loungeTrim.position.set(5.7, 0.232, -0.6);
         const loungeRug = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.03, 3.6), new THREE.MeshStandardMaterial({ color: 0x6d1f2b, roughness: 0.95 }));
@@ -4116,11 +4460,12 @@ export function Office3D({
         }
         floorLamp.position.set(-room.w / 2 + 0.75, 0.22, -2.75);
 
-        // Cây lớn THỨ HAI ở góc trước-trái khoang chính (đối xứng cây
-        // góc phải; không chắn cửa chính giữa, không chắn hành lang).
-        const plant2 = buildPlant();
-        plant2.scale.setScalar(1.4);
-        plant2.position.set(-room.w / 2 + 1.0, 0.22, room.d / 2 - 0.07 - 4.6 - 0.95);
+        // Chậu cây cảnh NHỎ thứ hai ở góc trước-trái khoang chính
+        // (đối xứng chậu góc phải; không chắn cửa chính giữa,
+        // không chắn hành lang) — cây to phóng 1.4 lần cũ đã bỏ
+        // theo quy tắc cây mới của Chủ tịch.
+        const plant2 = buildSmallPlant(3);
+        plant2.position.set(-room.w / 2 + 0.7, 0.22, room.d / 2 - 0.07 - 4.6 - 0.95);
         plant2.traverse((o) => {
           if (o instanceof THREE.Mesh && o.geometry instanceof THREE.SphereGeometry) {
             plantsRef.current.push(o);
@@ -4152,11 +4497,381 @@ export function Office3D({
         penHolder.position.set(-1.42, 0.86, -5.78);
         const docTray = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.05, 0.46), leather);
         docTray.position.set(-2.02, 0.83, -5.3);
-        const docPaper = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.015, 0.42), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }));
+        const docPaper = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.015, 0.42), new THREE.MeshStandardMaterial({ color: 0xefe8d6, roughness: 0.9 }));
         docPaper.position.set(-2.02, 0.865, -5.3);
 
         g.add(luxRug, rugTrim, retTop, retLeg, highBack, headPad, lampBase, lampStem, lampShade2, sofa, table, cab2, bookshelf, guestChair(-0.8), guestChair(0.8), plate, paintFrame, paintTrim, painting, flagPole, flag, flag2Pole, flag2, chandelier, sconces);
         g.add(displayCab, sofa2, table2, loungeRug, loungeTrim, logoDisc, logoFace, chandelier2, globe, wallClock, teaSet, floorLamp, plant2, credenza, penHolder, docTray, docPaper);
+
+        // --- PHÒNG TỔNG THỐNG (Chủ tịch chốt bổ sung): logo
+        // sau bàn, ghế bọc nệm + tay vịn, thảm lối cửa → bàn,
+        // thảm bộ sofa trái đối xứng phải, sách bìa da trên
+        // bàn, két sắt, tủ tài liệu khóa, góc họp riêng 4 ghế,
+        // bản đồ thế giới + kệ trà/cà phê, đồng hồ 3 múi giờ,
+        // tường bằng khen, ghế thư giãn góc kính. Mọi món đều
+        // đứng sát tường / ở góc — cửa chính giữa, hành lang
+        // trong và lối cửa → bàn luôn thông thoáng.
+        const leatherLight = new THREE.MeshStandardMaterial({ color: 0x8a5a30, roughness: 0.5 });
+        const steel = new THREE.MeshStandardMaterial({ color: 0x2b2f36, roughness: 0.45, metalness: 0.6 });
+
+        // Logo MUSE vàng NGAY SAU BÀN trên vách sau (đĩa nhỏ
+        // hơn đĩa vách trái) + vòng LED hắt sau đĩa — điểm
+        // nhìn chính diện khi khách bước qua cửa chính.
+        const logoBack = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.06, 32), brass);
+        logoBack.rotation.x = Math.PI / 2;
+        logoBack.position.set(0, 3.42, -room.d / 2 + 0.15);
+        const logoBackFace = new THREE.Mesh(new THREE.CircleGeometry(0.32, 32), new THREE.MeshBasicMaterial({ map: logoTex }));
+        logoBackFace.position.set(0, 3.42, -room.d / 2 + 0.19);
+        const logoBackRing = new THREE.Mesh(new THREE.TorusGeometry(0.39, 0.022, 8, 40), ledMat);
+        logoBackRing.position.set(0, 3.42, -room.d / 2 + 0.12);
+        g.add(logoBack, logoBackFace, logoBackRing);
+
+        // Ghế Chủ tịch bọc thêm nệm ngồi, hai tay vịn và hai
+        // đệm tựa trên lưng cao (ghế ở (0, −5.82), lưng cao ở
+        // z −6.25): ghế da lưng cao đúng nghĩa, không còn
+        // khung ghế thường lòi ra sau tấm lưng.
+        const seatCushion = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.045, 0.54), leatherLight);
+        seatCushion.position.set(0, 0.765, -5.82);
+        g.add(seatCushion);
+        for (const s of [-1, 1]) {
+          const armPad = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.52), leatherLight);
+          armPad.position.set(s * 0.36, 1.0, -5.82);
+          armPad.castShadow = true;
+          g.add(armPad);
+          for (const pz of [-5.62, -6.02]) {
+            const armPost = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.22, 0.05), walnut);
+            armPost.position.set(s * 0.36, 0.87, pz);
+            g.add(armPost);
+          }
+        }
+        for (const py of [1.38, 0.95]) {
+          const backPad = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.4, 0.05), leatherLight);
+          backPad.position.set(0, py, -6.17);
+          g.add(backPad);
+        }
+
+        // Thảm lối đi từ cửa chính tới bàn (chồng lên thảm
+        // phòng, dẫn mắt khách thẳng tới bàn Chủ tịch) + bộ
+        // thảm riêng dưới sofa trái cho đối xứng với bộ phải.
+        const runner2 = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.012, 3.75), new THREE.MeshStandardMaterial({ color: 0x6d1f2b, roughness: 0.95 }));
+        runner2.position.set(0, 0.256, 0);
+        runner2.receiveShadow = true;
+        g.add(runner2);
+        for (const s of [-1, 1]) {
+          const rTrim = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.014, 3.75), trimMat);
+          rTrim.position.set(s * 1.05, 0.258, 0);
+          g.add(rTrim);
+        }
+        const loungeTrimL = new THREE.Mesh(new THREE.BoxGeometry(4.56, 0.012, 3.76), trimMat);
+        loungeTrimL.position.set(-5.7, 0.232, -0.6);
+        const loungeRugL = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.03, 3.6), new THREE.MeshStandardMaterial({ color: 0x6d1f2b, roughness: 0.95 }));
+        loungeRugL.position.set(-5.7, 0.238, -0.6);
+        loungeRugL.receiveShadow = true;
+        g.add(loungeTrimL, loungeRugL);
+
+        // Chồng sách bìa da trên mặt bàn chính, đầu phải bàn.
+        const deskBook1 = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.05, 0.26), new THREE.MeshStandardMaterial({ color: 0x6d1f2b, roughness: 0.55 }));
+        deskBook1.position.set(1.42, 1.035, -5.35);
+        deskBook1.rotation.y = 0.15;
+        const deskBook2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.045, 0.23), new THREE.MeshStandardMaterial({ color: 0x274435, roughness: 0.55 }));
+        deskBook2.position.set(1.42, 1.082, -5.35);
+        deskBook2.rotation.y = -0.1;
+        g.add(deskBook1, deskBook2);
+
+        // Két sắt nhỏ sau bàn, phía phải ghế Chủ tịch: thân
+        // thép sẫm, cửa két + núm xoay đồng.
+        const safe = new THREE.Group();
+        {
+          const body = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.52, 0.44), steel);
+          body.position.y = 0.26;
+          body.castShadow = true;
+          const doorS = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.42, 0.03), new THREE.MeshStandardMaterial({ color: 0x363b45, roughness: 0.4, metalness: 0.6 }));
+          doorS.position.set(0, 0.26, 0.23);
+          const dial = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.03, 16), brass);
+          dial.rotation.x = Math.PI / 2;
+          dial.position.set(0.1, 0.3, 0.25);
+          const handleS = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.03, 0.03), brass);
+          handleS.position.set(-0.08, 0.22, 0.25);
+          safe.add(body, doorS, dial, handleS);
+        }
+        safe.position.set(2.05, 0.22, -6.18);
+        g.add(safe);
+
+        // Tủ tài liệu KHÓA ở vách sau, giữa giá sách và tủ gỗ
+        // trái: hai cánh óc chó, tay nắm + ổ khóa đồng.
+        const lockCab = new THREE.Group();
+        {
+          const body = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.05, 0.48), walnut);
+          body.position.y = 1.025;
+          body.castShadow = true;
+          lockCab.add(body);
+          for (const s of [-1, 1]) {
+            const doorC = new THREE.Mesh(new THREE.BoxGeometry(0.52, 1.9, 0.02), new THREE.MeshStandardMaterial({ color: 0x7d5c39, map: walnutTexture(), roughness: 0.48 }));
+            doorC.position.set(s * 0.27, 1.0, 0.25);
+            lockCab.add(doorC);
+            const handleC = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.22, 8), brass);
+            handleC.position.set(-s * 0.06, 1.05, 0.28);
+            lockCab.add(handleC);
+          }
+          const lock = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.03, 12), brass);
+          lock.rotation.x = Math.PI / 2;
+          lock.position.set(0, 1.32, 0.27);
+          const crownC = new THREE.Mesh(new THREE.BoxGeometry(1.23, 0.06, 0.52), brass);
+          crownC.position.y = 2.08;
+          lockCab.add(lock, crownC);
+        }
+        lockCab.position.set(-4.9, 0.22, -room.d / 2 + 0.45);
+        g.add(lockCab);
+
+        // GÓC HỌP RIÊNG 4 GHẾ ở góc trước-phải khoang chính:
+        // bàn tròn óc chó viền đồng + 4 ghế da quay vào bàn,
+        // dưới tường bằng khen — không chắn cửa, không chắn
+        // lối cửa → bàn (trục giữa x 0 luôn trống).
+        const meetCorner = new THREE.Group();
+        {
+          const topM = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.05, 24), walnut);
+          topM.position.y = 0.68;
+          topM.castShadow = true;
+          const rimM = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.018, 8, 32), brass);
+          rimM.rotation.x = Math.PI / 2;
+          rimM.position.y = 0.68;
+          const pedM = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.11, 0.62, 12), walnut);
+          pedM.position.y = 0.34;
+          const footM = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 0.05, 16), walnut);
+          footM.position.y = 0.025;
+          meetCorner.add(topM, rimM, pedM, footM);
+          for (const [ox, oz] of [[0.58, 0.58], [0.58, -0.58], [-0.58, 0.58], [-0.58, -0.58]] as const) {
+            const ch = new THREE.Group();
+            const baseC = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.4, 0.48), walnut);
+            baseC.position.y = 0.2;
+            const seatCh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.46), leather);
+            seatCh.position.y = 0.46;
+            seatCh.castShadow = true;
+            const backCh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.08), leather);
+            backCh.position.set(0, 0.82, 0.25);
+            backCh.castShadow = true;
+            ch.add(baseC, seatCh, backCh);
+            ch.position.set(ox, 0, oz);
+            ch.rotation.y = Math.atan2(ox, oz);
+            meetCorner.add(ch);
+          }
+        }
+        meetCorner.position.set(5.15, 0.22, 1.05);
+        g.add(meetCorner);
+
+        // BẢN ĐỒ THẾ GIỚI đóng khung trên tấm ốp óc chó ở mặt
+        // trong vách ngăn (phía khoang chính), dưới là KỆ TRÀ /
+        // CÀ PHÊ tiếp khách: máy pha, ấm, chén trên khay đồng.
+        const mapBoard = new THREE.Mesh(new THREE.BoxGeometry(3.0, 1.55, 0.05), walnut);
+        mapBoard.position.set(-4.6, 2.2, 1.855);
+        g.add(mapBoard);
+        const mapCanvas = document.createElement("canvas");
+        mapCanvas.width = 512;
+        mapCanvas.height = 256;
+        const mctx = mapCanvas.getContext("2d");
+        if (mctx) {
+          const ocean = mctx.createLinearGradient(0, 0, 0, 256);
+          ocean.addColorStop(0, "#1d4066");
+          ocean.addColorStop(1, "#142c47");
+          mctx.fillStyle = ocean;
+          mctx.fillRect(0, 0, 512, 256);
+          mctx.strokeStyle = "rgba(255,255,255,0.09)";
+          mctx.lineWidth = 1;
+          for (let gx = 0; gx <= 512; gx += 32) {
+            mctx.beginPath();
+            mctx.moveTo(gx, 0);
+            mctx.lineTo(gx, 256);
+            mctx.stroke();
+          }
+          for (let gy = 0; gy <= 256; gy += 32) {
+            mctx.beginPath();
+            mctx.moveTo(0, gy);
+            mctx.lineTo(512, gy);
+            mctx.stroke();
+          }
+          mctx.fillStyle = "#c9a86a";
+          mctx.strokeStyle = "#8a6f3a";
+          mctx.lineWidth = 1.5;
+          const land = (pts: [number, number][]) => {
+            mctx.beginPath();
+            pts.forEach(([px2, py2], i2) => {
+              if (i2 === 0) mctx.moveTo(px2, py2);
+              else mctx.lineTo(px2, py2);
+            });
+            mctx.closePath();
+            mctx.fill();
+            mctx.stroke();
+          };
+          land([[30, 60], [70, 38], [120, 42], [150, 55], [140, 82], [112, 96], [96, 112], [80, 96], [58, 106], [44, 86], [30, 74]]);
+          land([[118, 118], [140, 112], [150, 136], [142, 176], [128, 196], [117, 158], [112, 134]]);
+          land([[238, 96], [268, 88], [293, 106], [288, 142], [268, 170], [249, 150], [240, 120]]);
+          land([[244, 62], [268, 50], [286, 62], [272, 79], [251, 77]]);
+          land([[290, 56], [360, 40], [430, 54], [456, 80], [420, 96], [380, 88], [350, 106], [330, 86], [300, 76], [291, 66]]);
+          land([[415, 150], [455, 144], [463, 168], [436, 179], [417, 168]]);
+          mctx.beginPath();
+          mctx.ellipse(392, 122, 9, 5, 0.4, 0, Math.PI * 2);
+          mctx.fill();
+          mctx.beginPath();
+          mctx.ellipse(412, 130, 7, 4, 0.2, 0, Math.PI * 2);
+          mctx.fill();
+        }
+        const mapTex = new THREE.CanvasTexture(mapCanvas);
+        mapTex.colorSpace = THREE.SRGBColorSpace;
+        const worldMap = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 1.35), new THREE.MeshBasicMaterial({ map: mapTex }));
+        worldMap.position.set(-4.6, 2.2, 1.82);
+        worldMap.rotation.y = Math.PI;
+        g.add(worldMap);
+        const teaBar = new THREE.Group();
+        {
+          const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.78, 0.48), walnut);
+          body.position.y = 0.39;
+          body.castShadow = true;
+          const topB = new THREE.Mesh(new THREE.BoxGeometry(2.06, 0.04, 0.52), brass);
+          topB.position.y = 0.8;
+          teaBar.add(body, topB);
+          const machine = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.44, 0.4), new THREE.MeshStandardMaterial({ color: 0x1d1830, roughness: 0.35, metalness: 0.3 }));
+          machine.position.set(-0.62, 1.04, 0);
+          machine.castShadow = true;
+          const machineFace = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.02), steel);
+          machineFace.position.set(-0.62, 1.06, -0.21);
+          const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.09, 8), brass);
+          spout.position.set(-0.62, 0.9, -0.24);
+          const cupM = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.032, 0.06, 10), new THREE.MeshStandardMaterial({ color: 0xf5f2ea, roughness: 0.4 }));
+          cupM.position.set(-0.62, 0.85, -0.26);
+          teaBar.add(machine, machineFace, spout, cupM);
+          const kettle = new THREE.Mesh(new THREE.SphereGeometry(0.11, 14, 10), steel);
+          kettle.scale.y = 0.85;
+          kettle.position.set(0.15, 0.93, 0);
+          teaBar.add(kettle);
+          const tray = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.02, 0.3), brass);
+          tray.position.set(0.62, 0.83, 0);
+          teaBar.add(tray);
+          for (let ci = 0; ci < 3; ci++) {
+            const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.032, 0.06, 10), new THREE.MeshStandardMaterial({ color: 0xf5f2ea, roughness: 0.4 }));
+            cup.position.set(0.48 + ci * 0.15, 0.87, 0);
+            teaBar.add(cup);
+          }
+        }
+        teaBar.position.set(-4.6, 0.22, 1.58);
+        g.add(teaBar);
+
+        // ĐỒNG HỒ 3 MÚI GIỜ trên tấm ốp óc chó mặt trong vách
+        // ngăn, phía phải cửa: Hà Nội — London — New York,
+        // kim chỉ giờ khác nhau đúng lệch múi.
+        const clockBoard = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.62, 0.05), walnut);
+        clockBoard.position.set(2.9, 2.48, 1.855);
+        g.add(clockBoard);
+        const tzHours = [-0.9, 2.2, 4.4];
+        for (let ci = 0; ci < 3; ci++) {
+          const cg = new THREE.Group();
+          const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.045, 24), brass);
+          rim.rotation.x = Math.PI / 2;
+          cg.add(rim);
+          const face = new THREE.Mesh(new THREE.CircleGeometry(0.155, 24), new THREE.MeshStandardMaterial({ color: 0xf5f2ea, roughness: 0.4 }));
+          face.rotation.y = Math.PI;
+          face.position.z = -0.024;
+          cg.add(face);
+          const hourHand = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.085, 0.008), new THREE.MeshBasicMaterial({ color: 0x2a2018 }));
+          hourHand.geometry.translate(0, 0.032, 0);
+          hourHand.rotation.z = tzHours[ci] ?? 0;
+          hourHand.position.z = -0.032;
+          const minHand = new THREE.Mesh(new THREE.BoxGeometry(0.013, 0.12, 0.008), new THREE.MeshBasicMaterial({ color: 0x2a2018 }));
+          minHand.geometry.translate(0, 0.048, 0);
+          minHand.rotation.z = 0.3;
+          minHand.position.z = -0.036;
+          cg.add(hourHand, minHand);
+          cg.position.set(2.32 + ci * 0.58, 2.5, 1.83);
+          g.add(cg);
+        }
+        const tzCanvas = document.createElement("canvas");
+        tzCanvas.width = 512;
+        tzCanvas.height = 44;
+        const tzctx = tzCanvas.getContext("2d");
+        if (tzctx) {
+          tzctx.fillStyle = "#17130f";
+          tzctx.fillRect(0, 0, 512, 44);
+          tzctx.fillStyle = "#e8c860";
+          tzctx.font = "bold 24px Georgia, serif";
+          tzctx.textAlign = "center";
+          tzctx.textBaseline = "middle";
+          tzctx.fillText("HÀ NỘI · LONDON · NEW YORK", 256, 23);
+        }
+        const tzTex = new THREE.CanvasTexture(tzCanvas);
+        tzTex.colorSpace = THREE.SRGBColorSpace;
+        const tzLabel = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.16), new THREE.MeshBasicMaterial({ map: tzTex }));
+        tzLabel.position.set(2.9, 2.08, 1.83);
+        tzLabel.rotation.y = Math.PI;
+        g.add(tzLabel);
+
+        // TƯỜNG BẰNG KHEN trên vách trái, ngay trên credenza:
+        // lưới 3 × 2 khung óc chó viền vàng, mặt giấy khen có
+        // con dấu đỏ — thành tích của công ty nhìn thẳng từ
+        // ghế thư giãn và sofa trái.
+        const certCanvas = document.createElement("canvas");
+        certCanvas.width = 128;
+        certCanvas.height = 160;
+        const cctx2 = certCanvas.getContext("2d");
+        if (cctx2) {
+          cctx2.fillStyle = "#f5efdc";
+          cctx2.fillRect(0, 0, 128, 160);
+          cctx2.strokeStyle = "#c9a227";
+          cctx2.lineWidth = 4;
+          cctx2.strokeRect(5, 5, 118, 150);
+          cctx2.fillStyle = "#8a2f35";
+          cctx2.font = "bold 15px Georgia, serif";
+          cctx2.textAlign = "center";
+          cctx2.fillText("BẰNG KHEN", 64, 34);
+          cctx2.fillStyle = "rgba(60,50,40,0.65)";
+          for (let li = 0; li < 5; li++) {
+            cctx2.fillRect(22, 56 + li * 13, 84 - (li % 3) * 14, 4);
+          }
+          cctx2.fillStyle = "#c0392b";
+          cctx2.beginPath();
+          cctx2.arc(96, 132, 13, 0, Math.PI * 2);
+          cctx2.fill();
+        }
+        const certTex = new THREE.CanvasTexture(certCanvas);
+        certTex.colorSpace = THREE.SRGBColorSpace;
+        for (const zc of [-5.6, -5.02, -4.45]) {
+          for (const yc of [1.72, 2.48]) {
+            const certFrame = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.68, 0.52), walnut);
+            certFrame.position.set(-room.w / 2 + 0.1, yc, zc);
+            const certFace = new THREE.Mesh(new THREE.PlaneGeometry(0.44, 0.6), new THREE.MeshBasicMaterial({ map: certTex }));
+            certFace.rotation.y = Math.PI / 2;
+            certFace.position.set(-room.w / 2 + 0.14, yc, zc);
+            g.add(certFrame, certFace);
+          }
+        }
+
+        // GHẾ THƯ GIÃN GÓC KÍNH trước-trái: ghế bành da +
+        // đôn gác chân, hơi xoay ra phía kính trước và vào
+        // phòng — cạnh cây góc, trên thảm bộ sofa trái.
+        const loungeChair = new THREE.Group();
+        {
+          const baseL = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.3, 0.64), leather);
+          baseL.position.y = 0.26;
+          baseL.castShadow = true;
+          const cushionL = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.13, 0.58), leatherLight);
+          cushionL.position.y = 0.47;
+          const backL = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.72, 0.15), leather);
+          backL.position.set(0, 0.82, -0.27);
+          backL.rotation.x = -0.14;
+          backL.castShadow = true;
+          loungeChair.add(baseL, cushionL, backL);
+          for (const s of [-1, 1]) {
+            const armL2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.24, 0.6), leather);
+            armL2.position.set(s * 0.35, 0.62, 0);
+            loungeChair.add(armL2);
+          }
+          const otto = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.2, 0.4), leather);
+          otto.position.set(0, 0.2, 0.72);
+          const ottoPad = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.09, 0.36), leatherLight);
+          ottoPad.position.set(0, 0.34, 0.72);
+          loungeChair.add(otto, ottoPad);
+        }
+        loungeChair.position.set(-5.9, 0.22, 0.45);
+        loungeChair.rotation.y = 0.5;
+        g.add(loungeChair);
       }
 
       if (room.id === "ceo") {
@@ -4781,6 +5496,7 @@ export function Office3D({
           room.id === "chairman" || person.id === "tong-giam-doc",
           {
             coffee: ["video", "director", "ceo", "chairman"].includes(room.id),
+            executive: room.id === "chairman",
             steamSink: steamRef.current,
             onScreen: (g2, tex) => deskScreensRef.current.set(person.id, { g: g2, tex }),
           },
@@ -4810,17 +5526,21 @@ export function Office3D({
           }
           const plateTex2 = new THREE.CanvasTexture(plateCanvas);
           plateTex2.colorSpace = THREE.SRGBColorSpace;
+          // Bảng đặt ở ĐẦU TRÁI mặt bàn, đứng trên mặt bàn,
+          // NGOÀI hẳn vùng màn hình (màn hình chiếm x −0.175…
+          // 0.675 ở phía sau): bảng không đè màn hình, không
+          // che tầm Ngọc Anh nhìn ra sảnh.
           const deskPlate = new THREE.Mesh(
-            new THREE.BoxGeometry(0.92, 0.2, 0.03),
+            new THREE.BoxGeometry(0.72, 0.17, 0.03),
             new THREE.MeshStandardMaterial({ color: 0x0b3d4a, roughness: 0.4 }),
           );
-          deskPlate.position.set(0, 1.06, 0.32);
+          deskPlate.position.set(-0.55, 1.095, 0.1);
           deskPlate.rotation.x = -0.16;
           const deskPlateFace = new THREE.Mesh(
-            new THREE.PlaneGeometry(0.88, 0.17),
+            new THREE.PlaneGeometry(0.68, 0.14),
             new THREE.MeshBasicMaterial({ map: plateTex2 }),
           );
-          deskPlateFace.position.set(0, 1.065, 0.337);
+          deskPlateFace.position.set(-0.55, 1.1, 0.117);
           deskPlateFace.rotation.x = -0.16;
           g.add(deskPlate, deskPlateFace);
         }
@@ -4838,10 +5558,14 @@ export function Office3D({
         // quyết hiện ai theo mức zoom / hover / bấm chọn / công
         // tắc Bật/Tắt, và nâng so le các bảng gần nhau.
         const tagRank = staffTagRank(person.id);
-        const headTag = makeHeadTag(
-          person.name ?? `Nhân viên ${person.initials}`,
-          tagRank,
-        );
+        // Bảng tên trên đầu CHỈ TÊN NGẮN (Chủ tịch chốt): bỏ
+        // hậu tố " — Video 01 / — QC…" và tên dài quá 2 từ chỉ
+        // lấy 2 từ cuối — bảng nhỏ, không dài đè ngang người.
+        const rawName = (person.name ?? `Nhân viên ${person.initials}`).split("—")[0]?.trim() ?? "";
+        const nameWords = rawName.split(/\s+/).filter(Boolean);
+        const shortName =
+          nameWords.length > 2 ? nameWords.slice(-2).join(" ") : rawName;
+        const headTag = makeHeadTag(shortName, tagRank);
         headTag.position.set(0, TAG_BASE_Y, 0);
         headTag.visible = false;
         rig.group.add(headTag);
@@ -5000,6 +5724,7 @@ export function Office3D({
         const label = makeLabelSprite(name);
         label.position.set(x, 3.3, z);
         zones.add(label);
+        labelSpritesRef.current.set(id, label);
         roomFocus.set(id, { center: new THREE.Vector3(x, 0.05, z), dist });
       };
       const carpet = (w: number, d: number, x: number, z: number) => {
@@ -5453,28 +6178,54 @@ export function Office3D({
     }
     const signTex = new THREE.CanvasTexture(signCanvas);
     signTex.colorSpace = THREE.SRGBColorSpace;
+    // BẢNG LED TREO CAO HẲN TRÊN CỔNG (Chủ tịch chốt phần 2):
+    // bảng cũ — kể cả bản treo tâm y=2.5, mép dưới 1.83 — vẫn
+    // lơ lửng GIỮA khẩu độ cổng nhìn từ ngoài vào, lại chỉ có
+    // một mặt chữ quay vào trong nên từ phố nhìn vào chỉ thấy
+    // một tấm tối chắn cổng. Nay bảng treo CAO HẲN LÊN TRÊN
+    // XÀ CỔNG: tâm y=3.95, mép dưới 3.28 — cao hơn cả nóc
+    // tường bao (3.1) và xà cổng, nằm trọn phía trên khẩu độ;
+    // lối vào + 3 bậc ngắn bên dưới THÔNG THOÁNG HOÀN TOÀN,
+    // người đi qua không bao giờ đụng. Bảng có chữ CẢ HAI
+    // MẶT: mặt ngoài hướng ra phố cho khách tới đọc, mặt trong
+    // hướng vào sảnh. Hai trụ đỡ cao đứng ở x=±3.1, NGOÀI khẩu
+    // độ cổng (±2.6), không chắn lối.
+    const SIGN_Y = 3.95;
     const sign = new THREE.Mesh(
-      new THREE.PlaneGeometry(7.6, 1.5),
+      new THREE.PlaneGeometry(6.8, 1.34),
       new THREE.MeshBasicMaterial({ map: signTex, color: 0xdedede }),
     );
-    sign.position.set(0, 1.9, 21.6);
+    sign.position.set(0, SIGN_Y, 21.58);
     sign.rotation.y = Math.PI;
+    const signOut = new THREE.Mesh(
+      new THREE.PlaneGeometry(6.8, 1.34),
+      new THREE.MeshBasicMaterial({ map: signTex, color: 0xdedede }),
+    );
+    // Mặt chữ NGOÀI PHỐ phải là lớp NGOÀI CÙNG phía phố (z lớn
+    // nhất): trước đây mặt chữ nằm ở 21.78, SAU tấm halo đặc
+    // (21.815…21.865) nên từ phố nhìn vào chỉ thấy một tấm sáng
+    // đặc che hết chữ — đúng cảnh "tấm tối/sáng chắn cổng" Chủ
+    // tịch chụp lại. Nay mặt chữ ra 21.90, trước hẳn halo.
+    signOut.position.set(0, SIGN_Y, 21.9);
     const signBack = new THREE.Mesh(
-      new THREE.BoxGeometry(7.8, 1.7, 0.16),
+      new THREE.BoxGeometry(7.0, 1.5, 0.16),
       new THREE.MeshStandardMaterial({ color: 0x241a4a, roughness: 0.7 }),
     );
-    signBack.position.set(0, 1.9, 21.68);
+    signBack.position.set(0, SIGN_Y, 21.68);
     // LED halo behind the MUSE COMPANY sign: a slightly larger warm
-    // emissive plate peeking out around the sign's edges (blooms).
-    const signHalo = new THREE.Mesh(new THREE.BoxGeometry(8.3, 2.05, 0.05), ledMat);
-    signHalo.position.set(0, 1.9, 21.8);
+    // emissive plate peeking out around the sign's edges — it sits
+    // BETWEEN the backing box and the street-facing text plane, so
+    // from the street only its rim shows around the text, never
+    // covering it; from the hall its rim peeks around the backing.
+    const signHalo = new THREE.Mesh(new THREE.BoxGeometry(7.5, 1.8, 0.05), ledMat);
+    signHalo.position.set(0, SIGN_Y, 21.84);
     const postL = new THREE.Mesh(
-      new THREE.BoxGeometry(0.16, 1.2, 0.16),
+      new THREE.BoxGeometry(0.16, 4.62, 0.16),
       new THREE.MeshStandardMaterial({ color: 0x3a2c66, roughness: 0.7 }),
     );
-    postL.position.set(-3.4, 0.6, 21.68);
+    postL.position.set(-3.1, 2.31, 21.68);
     const postR = postL.clone();
-    postR.position.x = 3.4;
+    postR.position.x = 3.1;
     // Red carpet at the main entrance (the Lễ tân desk stands in the
     // middle in front of the Tổng giám đốc room, per the floor plan).
     const carpet = new THREE.Mesh(
@@ -5493,7 +6244,7 @@ export function Office3D({
     lobbyPlant.position.set(10.8, 0, 20.9);
     const lobbyPlant2 = buildPlant();
     lobbyPlant2.position.set(-10.8, 0, 20.9);
-    lobby.add(sign, signBack, signHalo, postL, postR, carpet, waitSofa, lobbyPlant, lobbyPlant2);
+    lobby.add(sign, signOut, signBack, signHalo, postL, postR, carpet, waitSofa, lobbyPlant, lobbyPlant2);
     for (const lp of [lobbyPlant, lobbyPlant2]) {
       lp.traverse((o) => {
         if (o instanceof THREE.Mesh && o.geometry instanceof THREE.SphereGeometry) {
@@ -5540,16 +6291,23 @@ export function Office3D({
       cam.elevGoal = 0.72;
     };
 
-    // Camera controls — NO mode buttons and nothing to switch:
-    // LEFT-drag (or ONE finger on touch) PANS — it grabs the scene and
-    // moves the view to any department room; it does NOT merely orbit
-    // in place. Right-drag, middle-drag or Space + left-drag pan the
-    // same way. Rotating (orbit) on touch is the TWO-finger drag; the
-    // wheel zooms toward the cursor. The pan target is NOT clamped to
-    // any region, so the view can be dragged anywhere without getting
-    // stuck in one corner. Dragging only moves the camera, never a
-    // room. Double-click flies into a room; two fingers also
-    // pinch-zoom while they rotate.
+    // Camera controls — PHƯƠNG ÁN TỐT NHẤT (Chủ tịch chốt), NO
+    // mode buttons and nothing to switch; click and drag are kept
+    // apart by a small displacement threshold (7px):
+    // • CLICK / tap released quickly = MOVE TO the exact point
+    //   pressed: a room flies the camera to that room, the floor
+    //   shifts the view centre to that spot, a person flies in
+    //   close to them and opens their card (with the Trò chuyện
+    //   button) in the right rail.
+    // • HOLD left-drag (or ONE finger on touch) and drag = ORBIT
+    //   around the point being viewed — no two-finger rotate.
+    // • Right-drag, middle-drag or Space + left-drag = smooth PAN.
+    // • Wheel zooms toward the cursor; two fingers pinch-zoom
+    //   toward their midpoint (dragging the pair pans smoothly).
+    // • Double-click a room = fly in and sit near its desk; the
+    //   Toàn cảnh button flies back out to the supervision view.
+    // The pan target is NOT clamped to any region, so the view can
+    // travel anywhere without getting stuck in one corner.
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
     const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(0.5 - FLOOR_DROP));
@@ -5557,7 +6315,7 @@ export function Office3D({
     let downX = 0;
     let downY = 0;
     let downT = 0;
-    let panning = false;
+    let dragMode: "orbit" | "pan" = "orbit";
     let spaceDown = false;
     let pinchD = 0;
     let pinchMX = 0;
@@ -5587,7 +6345,17 @@ export function Office3D({
         if (!roomId && obj.userData.roomId) roomId = obj.userData.roomId as string;
         obj = obj.parent;
       }
-      return { staffId, roomId };
+      return { staffId, roomId, point: hit.point };
+    };
+
+    // Ground point under a screen position (the office floor plane) —
+    // used when a click hits nothing pickable, so a click on ANY spot
+    // still moves the view centre to exactly that spot.
+    const groundPointAt = (ev: { clientX: number; clientY: number }) => {
+      setPointer(ev);
+      raycaster.setFromCamera(pointer, camera);
+      const p = new THREE.Vector3();
+      return raycaster.ray.intersectPlane(groundPlane, p) ? p : null;
     };
 
     const panBy = (dx: number, dy: number) => {
@@ -5625,14 +6393,13 @@ export function Office3D({
         downX = ev.clientX;
         downY = ev.clientY;
         downT = performance.now();
-        // A single drag ALWAYS pans (moves the view): left button,
-        // right button, middle button, Space + left, or one touch
-        // finger — every one of them grabs the scene and drags it to a
-        // new place. Left-drag must never degrade to rotate-only.
-        // (spaceDown is still tracked so Space never scrolls the page,
-        // but panning no longer depends on it.)
-        void spaceDown;
-        panning = true;
+        // GIỮ KÉO = XOAY quanh điểm đang xem (chuột trái / 1 ngón
+        // chạm). Chuột phải, chuột giữa hoặc Space + kéo trái =
+        // DI CHUYỂN MỊN (pan). The mode is chosen once, here at
+        // press time, so a hold-drag can never start as a click or
+        // flip halfway through.
+        dragMode =
+          ev.button === 2 || ev.button === 1 || spaceDown ? "pan" : "orbit";
         el.style.cursor = "grabbing";
       } else if (pointers.size === 2) {
         const [a, b] = [...pointers.values()];
@@ -5670,17 +6437,19 @@ export function Office3D({
       const dy = ev.clientY - prev.y;
       pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
       if (pointers.size === 1) {
-        // One pointer (any mouse button, or one touch finger) PANS:
-        // the view travels to wherever the drag takes it. Holding Alt
-        // or Shift while dragging ROTATES instead — light, direct
-        // orbiting with the mouse, so xoay không còn khó: a short
-        // drag turns the view a long way and the follow smoothing
-        // (theta lerp in the render loop) keeps it silky.
-        if (ev.altKey || ev.shiftKey) {
+        if (dragMode === "pan") {
+          // Chuột phải / chuột giữa / Space + kéo: di chuyển mịn.
+          panBy(dx, dy);
+        } else {
+          // GIỮ chuột trái hoặc GIỮ 1 ngón rồi kéo = XOAY quanh
+          // điểm đang xem — light, direct orbiting: a short drag
+          // turns the view a long way and the follow smoothing
+          // (theta lerp in the render loop) keeps it silky. Không
+          // cần 2 ngón, không cần phím phụ.
           const cam = camRef.current;
           cam.thetaGoal += dx * 0.0075;
           cam.elevGoal = THREE.MathUtils.clamp(cam.elevGoal + dy * 0.0045, 0.08, 1.5);
-        } else if (panning) panBy(dx, dy);
+        }
       } else if (pointers.size === 2) {
         const [a, b] = [...pointers.values()];
         if (!a || !b) return;
@@ -5689,21 +6458,18 @@ export function Office3D({
         const my = (a.y + b.y) / 2;
         const cam = camRef.current;
         if (pinchD > 0 && d > 0) {
-          cam.distGoal = THREE.MathUtils.clamp(cam.distGoal * (pinchD / d), 3.5, 110);
+          // Chụm 2 ngón = ZOOM vào điểm đang chỉ (trung điểm 2
+          // ngón), giống hệt lăn chuột zoom vào con trỏ.
+          const newDist = THREE.MathUtils.clamp(cam.distGoal * (pinchD / d), 3.5, 110);
+          const hitP = groundPointAt({ clientX: mx, clientY: my });
+          if (hitP) {
+            const ratio = newDist / cam.distGoal;
+            cam.targetGoal.sub(hitP).multiplyScalar(ratio).add(hitP);
+          }
+          cam.distGoal = newDist;
         }
-        // Two-finger drag ROTATES (orbits) — the rotate gesture on
-        // touch. Dragging the pair sideways turns the view around the
-        // scene; dragging it up/down tilts the elevation, over the
-        // same wide range as before (almost ground level to almost
-        // straight overhead) so rotation never feels stuck at an
-        // angle; only the last few degrees before the poles are held
-        // back to keep the orbit math stable.
-        cam.thetaGoal += (mx - pinchMX) * 0.0085;
-        cam.elevGoal = THREE.MathUtils.clamp(
-          cam.elevGoal + (my - pinchMY) * 0.005,
-          0.08,
-          1.5,
-        );
+        // Kéo cả cặp 2 ngón = di chuyển mịn theo trung điểm.
+        panBy(mx - pinchMX, my - pinchMY);
         pinchD = d;
         pinchMX = mx;
         pinchMY = my;
@@ -5714,24 +6480,48 @@ export function Office3D({
       pointers.delete(ev.pointerId);
       if (pointers.size === 0) el.style.cursor = "grab";
       if (!wasSingle) return;
+      // Phân biệt CLICK với GIỮ KÉO bằng ngưỡng lệch nhỏ: lệch
+      // quá 7px hoặc giữ quá 600ms thì đó là kéo (xoay / di
+      // chuyển), không phải bấm chọn — không bao giờ bay nhầm.
       const moved = Math.hypot(ev.clientX - downX, ev.clientY - downY);
-      if (moved > 6 || performance.now() - downT > 600) return;
+      if (moved > 7 || performance.now() - downT > 600) return;
+      const cam = camRef.current;
       const pick = pickAt(ev);
-      if (!pick) return;
-      if (pick.staffId) {
-        // Người vừa bấm chọn: bảng tên của người đó luôn hiện
-        // (kể cả khi zoom xa) cho tới khi bấm chọn người khác —
-        // và camera bay vào phòng, hạ xuống sát bàn của đúng
-        // người đó để nhìn cận cảnh họ đang làm việc.
+      if (pick?.staffId) {
+        // BẤM NHÂN VẬT: camera bay gần đúng người đó và mở thẻ
+        // của họ (có nút Trò chuyện) ở cột phải; bảng tên của
+        // người đó luôn hiện (kể cả khi zoom xa) cho tới khi bấm
+        // chọn người khác.
         pickedIdRef.current = pick.staffId;
         selectStaffRef.current(pick.staffId);
         if (pick.roomId) setFocusedId(pick.roomId);
         focusRef.current(pick.roomId, pick.staffId);
         return;
       }
-      if (pick.roomId) {
+      if (pick?.roomId) {
+        // BẤM PHÒNG: camera DI CHUYỂN TỚI phòng đó — tâm nhìn
+        // về giữa phòng, khoảng cách nhìn toàn phòng. Ngồi gần
+        // bàn là việc của NHẤP ĐÚP (và của chip phòng phía trên).
         setFocusedId(pick.roomId);
-        focusRef.current(pick.roomId);
+        const f = roomFocusRef.current.get(pick.roomId);
+        if (f) {
+          cam.targetGoal.copy(f.center);
+          cam.distGoal = f.dist;
+          cam.elevGoal = 0.72;
+        }
+        return;
+      }
+      // BẤM SÀN / ĐẤT / KHU TIỆN ÍCH: tâm nhìn dời tới ĐÚNG điểm
+      // vừa bấm (điểm chạm tia hoặc mặt phẳng sàn), tiến lại gần
+      // hơn một chút nếu đang ở góc tổng giám sát rất xa.
+      const pt = pick?.point ?? groundPointAt(ev);
+      if (pt) {
+        cam.targetGoal.set(
+          pt.x,
+          THREE.MathUtils.clamp(pt.y, -2 - FLOOR_DROP, 24),
+          pt.z,
+        );
+        if (cam.distGoal > 22) cam.distGoal = 22;
       }
     };
     const onCancel = (ev: PointerEvent) => {
@@ -5780,7 +6570,11 @@ export function Office3D({
       return true;
     };
     const onKeyDown = (ev: KeyboardEvent) => {
-      if (spaceGuard(ev)) spaceDown = true;
+      if (spaceGuard(ev)) {
+        spaceDown = true;
+        // Giữ Space để kéo di chuyển: không cho trang cuộn theo.
+        ev.preventDefault();
+      }
       // Phím mũi tên cũng xoay / nghiêng camera được — thêm một đường
       // xoay dễ nữa ngoài chuột và hai ngón tay.
       const tag = (ev.target as HTMLElement | null)?.tagName ?? "";
@@ -6083,6 +6877,11 @@ export function Office3D({
     let prevT = 0;
     let fpsFrames = 0;
     let fpsLastT = 0;
+    // GL phần mềm: render CÁCH KHUNG (bỏ 1 khung xen kẽ, logic
+    // camera / người đi lại vẫn chạy mỗi nhịp) — main thread có
+    // khoảng thở giữa hai lần tô nặng, máy kiểm tra mới chen vào
+    // chụp ảnh / bấm nút được thay vì bị chiếm cứng 30 giây.
+    let renderTick = 0;
     const clock = new THREE.Clock();
     const tmpTarget = new THREE.Vector3();
     const tmpDir = new THREE.Vector3();
@@ -6117,6 +6916,19 @@ export function Office3D({
         );
         camera.lookAt(cam.target);
 
+        // NHÃN PHÒNG / NHÃN KHU CO THEO KHOẢNG CÁCH CAMERA:
+        // ở góc tổng giám sát nhãn giữ cỡ gốc 3.0 × 0.52; càng
+        // bay vào gần nhãn càng thu nhỏ (tới một nửa ở góc ngồi
+        // gần bàn) — không còn cảnh nhãn phòng phình to choán
+        // cả góc trên khung hình, đè lên nhau và che nội thất.
+        {
+          const lf =
+            cam.dist >= 30 ? 1 : cam.dist >= 18 ? 0.8 : cam.dist >= 11 ? 0.64 : 0.5;
+          labelSpritesRef.current.forEach((sp) => {
+            sp.scale.set(3.0 * lf, 0.52 * lf, 1);
+          });
+        }
+
         // BẢNG TÊN TRÊN ĐẦU (Chủ tịch chốt): bình thường ẨN HẾT
         // — ở mức zoom xa / góc nhìn thường (dist > 38) không
         // bảng nào tự hiện, sàn sạch hoàn toàn; chỉ người đang
@@ -6141,8 +6953,8 @@ export function Office3D({
             const ppu =
               viewH /
               (2 * dist * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
-            const tagWpx = 1.35 * ppu;
-            const tagHpx = 0.3 * ppu;
+            const tagWpx = 1.0 * ppu;
+            const tagHpx = 0.235 * ppu;
             const rankPrio: Record<TagRank, number> = {
               chairman: 1,
               ceo: 2,
@@ -6635,11 +7447,17 @@ export function Office3D({
           clk.m.rotation.x = -(m / 60) * Math.PI * 2;
           clk.h.rotation.x = -(h / 12) * Math.PI * 2;
         }
-        if (composer) composer.render();
-        else renderer.render(scene, camera);
+        renderTick += 1;
+        const skipRender = softwareGL && renderTick % 2 === 0;
+        if (!skipRender) {
+          if (composer) composer.render();
+          else renderer.render(scene, camera);
+        }
         // Live FPS readout (acceptance metric for the graphics
-        // upgrade): refresh the chip twice a second.
-        fpsFrames += 1;
+        // upgrade): refresh the chip twice a second. On software
+        // GL only rendered frames count, so the number stays the
+        // REAL presented-frame rate, never the RAF tick rate.
+        if (!skipRender) fpsFrames += 1;
         if (t - fpsLastT >= 0.5) {
           if (fpsRef.current) {
             fpsRef.current.textContent = String(Math.round(fpsFrames / (t - fpsLastT)));
@@ -6693,10 +7511,10 @@ export function Office3D({
     });
     // Ceiling lights follow whether the room is staffed/open.
     ceilMatsRef.current.forEach((mat, id) => {
-      mat.emissiveIntensity = (roomLamp[id] ?? "idle") === "soon" ? 0.18 : 0.8;
+      mat.emissiveIntensity = (roomLamp[id] ?? "idle") === "soon" ? 0.18 : 0.55;
     });
     ceilLightsRef.current.forEach((light, id) => {
-      light.intensity = (roomLamp[id] ?? "idle") === "soon" ? 2 : 6.5;
+      light.intensity = (roomLamp[id] ?? "idle") === "soon" ? 1.5 : 3.1;
     });
     // Chấm trạng thái trên nhãn phòng vẽ lại theo đèn phòng hiện tại.
     roomLabelRef.current.forEach((entry, id) => {
@@ -6740,10 +7558,10 @@ export function Office3D({
       { h: 4.5, bg: 0x0b0820, skyTop: 0x04030e, skyHor: 0x191038, skyBot: 0x030309, keyColor: 0x8fb4ff, keyI: 0.35, ambI: 0.3, hemiI: 0.22, fogNear: 85, fogFar: 215, night: 1, ground: 0x141126 },
       { h: 5.75, bg: 0x1a1433, skyTop: 0x1c2a52, skyHor: 0x7a4460, skyBot: 0x07060f, keyColor: 0xd9a0b0, keyI: 0.5, ambI: 0.4, hemiI: 0.3, fogNear: 90, fogFar: 230, night: 0.85, ground: 0x1d1832 },
       { h: 6.75, bg: 0x2c2144, skyTop: 0x3a5f9e, skyHor: 0xffa25e, skyBot: 0x0d0a1a, keyColor: 0xffc98a, keyI: 1.05, ambI: 0.6, hemiI: 0.45, fogNear: 100, fogFar: 260, night: 0.45, ground: 0x2c2c3a },
-      { h: 8, bg: 0x39548c, skyTop: 0x2f74d6, skyHor: 0xc4e2f2, skyBot: 0x1a2440, keyColor: 0xfff1d6, keyI: 1.6, ambI: 0.9, hemiI: 0.58, fogNear: 130, fogFar: 300, night: 0, ground: 0x55624e },
-      { h: 12, bg: 0x3f66a8, skyTop: 0x1f6fe6, skyHor: 0xd6eefb, skyBot: 0x22345c, keyColor: 0xffffff, keyI: 1.7, ambI: 0.97, hemiI: 0.64, fogNear: 140, fogFar: 320, night: 0, ground: 0x5d6d54 },
-      { h: 15.5, bg: 0x3d5f9e, skyTop: 0x2a72da, skyHor: 0xcfe6f4, skyBot: 0x1f3050, keyColor: 0xfff3da, keyI: 1.72, ambI: 0.94, hemiI: 0.62, fogNear: 135, fogFar: 310, night: 0, ground: 0x59684f },
-      { h: 17.25, bg: 0x37456e, skyTop: 0x35619f, skyHor: 0xf6c87e, skyBot: 0x182238, keyColor: 0xffdf9f, keyI: 1.55, ambI: 0.85, hemiI: 0.55, fogNear: 120, fogFar: 290, night: 0.1, ground: 0x4c5545 },
+      { h: 8, bg: 0x39548c, skyTop: 0x2f74d6, skyHor: 0xc4e2f2, skyBot: 0x1a2440, keyColor: 0xfff1d6, keyI: 1.3, ambI: 0.86, hemiI: 0.56, fogNear: 130, fogFar: 300, night: 0, ground: 0x55624e },
+      { h: 12, bg: 0x3f66a8, skyTop: 0x1f6fe6, skyHor: 0xd6eefb, skyBot: 0x22345c, keyColor: 0xffffff, keyI: 1.36, ambI: 0.9, hemiI: 0.62, fogNear: 140, fogFar: 320, night: 0, ground: 0x5d6d54 },
+      { h: 15.5, bg: 0x3d5f9e, skyTop: 0x2a72da, skyHor: 0xcfe6f4, skyBot: 0x1f3050, keyColor: 0xfff3da, keyI: 1.38, ambI: 0.88, hemiI: 0.6, fogNear: 135, fogFar: 310, night: 0, ground: 0x59684f },
+      { h: 17.25, bg: 0x37456e, skyTop: 0x35619f, skyHor: 0xf6c87e, skyBot: 0x182238, keyColor: 0xffdf9f, keyI: 1.4, ambI: 0.8, hemiI: 0.53, fogNear: 120, fogFar: 290, night: 0.1, ground: 0x4c5545 },
       { h: 18.5, bg: 0x2a2148, skyTop: 0x2c2a66, skyHor: 0xff7a3c, skyBot: 0x0d0a1e, keyColor: 0xff9a5c, keyI: 1.0, ambI: 0.55, hemiI: 0.4, fogNear: 100, fogFar: 250, night: 0.55, ground: 0x33303f },
       { h: 19.5, bg: 0x120c2a, skyTop: 0x0a0824, skyHor: 0x40245c, skyBot: 0x05040e, keyColor: 0x8fb4ff, keyI: 0.42, ambI: 0.33, hemiI: 0.25, fogNear: 88, fogFar: 220, night: 0.95, ground: 0x171430 },
       { h: 20.5, bg: 0x0b0820, skyTop: 0x04030e, skyHor: 0x191038, skyBot: 0x030309, keyColor: 0x8fb4ff, keyI: 0.35, ambI: 0.3, hemiI: 0.22, fogNear: 85, fogFar: 215, night: 1, ground: 0x141126 },
@@ -6832,7 +7650,7 @@ export function Office3D({
         ref={mountRef}
         className="h-[360px] w-full overflow-hidden rounded-[var(--radius)] sm:h-[460px]"
         role="img"
-        aria-label="Văn phòng 3D: kéo chuột trái để di chuyển góc nhìn tới phòng bất kỳ, kéo chuột phải hoặc giữ phím cách rồi kéo cũng di chuyển như vậy, lăn chuột để phóng to thu nhỏ vào vị trí con trỏ, nhấp đúp vào phòng để phóng vào phòng đó, trên điện thoại kéo một ngón để di chuyển và kéo hai ngón để xoay, di chuột lên nhân viên để xem thẻ, bấm vào nhân viên để mở thẻ nhân viên — trên thẻ có nút Trò chuyện để mở cuộc trò chuyện với người đó"
+        aria-label="Văn phòng 3D: bấm vào phòng, sàn hoặc nhân vật để camera di chuyển tới đúng chỗ đó — bấm nhân vật thì bay gần người đó và mở thẻ có nút Trò chuyện; giữ chuột trái hoặc giữ một ngón rồi kéo để xoay quanh điểm đang xem; kéo chuột phải hoặc giữ phím cách rồi kéo để di chuyển mịn; lăn chuột hoặc chụm hai ngón để phóng to thu nhỏ vào điểm đang chỉ; nhấp đúp vào phòng để bay vào ngồi gần bàn; nút Toàn cảnh đưa về góc tổng giám sát"
       />
       {error ? (
         <p className="absolute inset-x-3 top-3 rounded bg-red-900/85 px-3 py-2 text-sm text-white">
@@ -6884,10 +7702,10 @@ export function Office3D({
       {showGuide ? (
         <div className="absolute bottom-11 left-3 right-12 rounded-lg bg-[#17102e]/92 px-3 py-2 text-xs leading-relaxed text-[#c9bdf5] shadow-lg">
           <p className="hidden sm:block">
-            Kéo chuột trái: di chuyển tới phòng bất kỳ · Giữ Alt hoặc Shift + kéo: XOAY nhẹ, mượt · Phím mũi tên ← →: cũng xoay · Lăn chuột: phóng to/thu nhỏ · Bấm phòng / nhân viên / nhấp đúp: bay vào trong phòng, ngồi gần bàn · Bấm Toàn cảnh: quay về góc tổng giám sát
+            Bấm phòng / sàn / nhân vật: camera di chuyển tới đúng chỗ đó (bấm nhân vật mở thẻ có nút Trò chuyện) · Giữ chuột trái kéo: XOAY quanh điểm đang xem · Chuột phải kéo hoặc Space + kéo: di chuyển mịn · Lăn chuột: zoom vào điểm đang chỉ · Nhấp đúp phòng: bay vào ngồi gần bàn · Bấm Toàn cảnh: quay về góc tổng giám sát
           </p>
           <p className="sm:hidden">
-            1 ngón: di chuyển · 2 ngón kéo ngang: xoay nhẹ · Chụm: zoom · Bấm tên phòng ở thanh chọn phía trên: bay vào ngồi gần bàn · Toàn cảnh: quay về tổng giám sát
+            Chạm thả nhanh: di chuyển tới chỗ chạm · Giữ 1 ngón kéo: xoay · Chụm 2 ngón: zoom · Chạm đúp phòng: ngồi gần bàn · Toàn cảnh: quay về tổng giám sát
           </p>
         </div>
       ) : null}
